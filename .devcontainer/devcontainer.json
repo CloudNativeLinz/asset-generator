@@ -1,6 +1,6 @@
 
 {
-  "name": "go-image-generator",
+  "name": "imagegen",
   "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/node:2.1.0": {

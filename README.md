@@ -134,8 +134,8 @@ Built-in Jinja filters:
 ├── assets/
 │   ├── backgrounds/
 │   ├── fonts/
+│   ├── overlays/
 │   ├── speaker-images/
-│   ├── sponsor-logos/
 │   └── templates/
 │       └── meetup.yaml
 ├── src/imagegen/
@@ -147,7 +147,9 @@ Built-in Jinja filters:
 │   ├── images.py
 │   └── web/
 │       ├── app.py
-│       └── templates/index.html
+│       └── templates/
+│           ├── index.html
+│           └── settings.html
 └── tests/
 ```
 
