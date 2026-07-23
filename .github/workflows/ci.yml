@@ -31,7 +31,7 @@ jobs:
       - name: Build package
         run: |
           pip install build
-          python -m build --no-isolation
+          python -m build
 
       - name: Test
         run: python -m pytest -q
