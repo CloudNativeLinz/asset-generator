@@ -1,3 +1,5 @@
+[![Lint, Build, Test](https://github.com/CloudNativeLinz/asset-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/CloudNativeLinz/asset-generator/actions/workflows/ci.yml)
+
 # Image Generator
 
 Template-driven event image renderer using Python, Pillow, and YAML templates.
