@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from starlette.requests import Request
 
 from ..bundle import generate_event_bundle
@@ -76,7 +76,7 @@ def _load_settings(path: Path) -> StudioSettings:
 
     try:
         return StudioSettings.model_validate(payload)
-    except Exception:
+    except ValidationError:
         return _default_settings()
 
 

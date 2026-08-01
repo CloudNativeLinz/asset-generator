@@ -30,7 +30,7 @@ def _fetch_remote_events() -> list[dict[str, Any]]:
     response.raise_for_status()
     parsed = yaml.safe_load(response.text) or []
     if not isinstance(parsed, list):
-        raise ValueError("Remote events payload is not a list")
+        raise TypeError("Remote events payload is not a list")
     return parsed
 
 
@@ -101,7 +101,7 @@ def _apply_speaker_image_fallbacks(raw_events: list[dict[str, Any]]) -> list[dic
             image = str(talk.get("image") or "").strip()
             fallback = _find_local_speaker_image(event_id, index)
 
-            if image.startswith("http://") or image.startswith("https://"):
+            if image.startswith(("http://", "https://")):
                 if fallback is None:
                     fallback = _download_speaker_image(image, event_id, index)
                 if fallback is not None:

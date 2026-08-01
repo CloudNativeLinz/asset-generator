@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated
 
 import typer
 import uvicorn
@@ -13,6 +14,7 @@ from .slides import generate_slide_deck
 from .web.app import create_app
 
 app = typer.Typer(help="Template-driven event image generator")
+ANIMATION_PRESETS_TEXT = ", ".join(ANIMATION_PRESETS)
 
 
 def _save_rendered_image(
@@ -103,17 +105,18 @@ def generate_bundle(
     format: str = typer.Option("jpg", "--format", help="Output format: jpg or png"),
     no_social: bool = typer.Option(False, "--no-social", help="Skip social copy generation"),
     no_slides: bool = typer.Option(False, "--no-slides", help="Skip slide deck generation"),
-    animations: list[str] = typer.Option(
-        [],
-        "--animation",
-        help=f"Animation preset to include ({', '.join(ANIMATION_PRESETS)}); repeatable",
-    ),
+    animations: Annotated[
+        list[str] | None,
+        typer.Option("--animation", help=f"Animation preset to include ({ANIMATION_PRESETS_TEXT}); repeatable"),
+    ] = None,
 ) -> None:
     fmt = format.lower()
     if fmt not in {"jpg", "png"}:
         raise typer.BadParameter("--format must be jpg or png")
 
-    for preset in animations:
+    selected_animations = list(animations or [])
+
+    for preset in selected_animations:
         if preset not in ANIMATION_PRESETS:
             raise typer.BadParameter(f"--animation must be one of {', '.join(ANIMATION_PRESETS)}")
 
@@ -130,7 +133,7 @@ def generate_bundle(
             output_format=fmt,
             include_social=not no_social,
             include_slides=not no_slides,
-            animation_presets=list(animations),
+            animation_presets=selected_animations,
         )
         typer.echo(f"Bundle ready at {bundle.output_dir}")
 
