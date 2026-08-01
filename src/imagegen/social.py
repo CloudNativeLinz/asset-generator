@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from .config import (
     AzureOpenAISettings,
@@ -28,7 +28,7 @@ def _date_text(value: str | date | None) -> str:
 
     for candidate in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
         try:
-            parsed = datetime.strptime(text, candidate)
+            parsed = datetime.strptime(text, candidate).replace(tzinfo=UTC)
             return parsed.strftime("%d %b %Y")
         except ValueError:
             continue

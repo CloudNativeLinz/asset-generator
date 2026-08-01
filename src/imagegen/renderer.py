@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,7 @@ def _date_filter(value: Any, fmt: str = "%d %b %Y") -> str:
 
     for candidate in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
         try:
-            parsed = datetime.strptime(text, candidate)
+            parsed = datetime.strptime(text, candidate).replace(tzinfo=UTC)
             return parsed.strftime(fmt)
         except ValueError:
             continue

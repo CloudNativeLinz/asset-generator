@@ -88,21 +88,11 @@ def _save_mp4(frames: list[Image.Image], destination: Path, fps: int) -> str | N
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
-        writer = imageio.get_writer(destination, fps=fps, codec="libx264", quality=8)
-    except Exception:
+        with imageio.get_writer(destination, fps=fps, codec="libx264", quality=8) as writer:
+            for frame in frames:
+                writer.append_data(np.asarray(frame))
+    except (OSError, RuntimeError, ValueError):
         return None
-
-    try:
-        for frame in frames:
-            writer.append_data(np.asarray(frame))
-    except Exception:
-        writer.close()
-        return None
-    finally:
-        try:
-            writer.close()
-        except Exception:
-            pass
 
     return destination.as_posix() if destination.exists() else None
 

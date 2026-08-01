@@ -31,7 +31,7 @@ def load_source_image(source: str, cache_dir: Path) -> Image.Image | None:
 
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    if source.startswith("http://") or source.startswith("https://"):
+    if source.startswith(("http://", "https://")):
         cache_file = _cache_path(source, cache_dir)
         if not cache_file.exists():
             try:
