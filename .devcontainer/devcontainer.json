@@ -1,4 +1,3 @@
-
 {
   "name": "imagegen",
   "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
@@ -42,8 +41,8 @@
       }
     }
   },
-  "postCreateCommand": "pip install -e .[dev] && sudo bash -c 'ln -sf /usr/local/share/nvm/current/bin/node /usr/local/bin/node && ln -sf /usr/local/share/nvm/current/bin/npm /usr/local/bin/npm && ln -sf /usr/local/share/nvm/current/bin/npx /usr/local/bin/npx && echo \\\"export PATH=/usr/local/bin:/usr/local/share/nvm/current/bin:\\$PATH\\\" >> /etc/profile'",
-  "postStartCommand": "sudo bash -c 'ln -sf /usr/local/share/nvm/current/bin/node /usr/local/bin/node && ln -sf /usr/local/share/nvm/current/bin/npm /usr/local/bin/npm && ln -sf /usr/local/share/nvm/current/bin/npx /usr/local/bin/npx && echo \\\"PATH=/usr/local/bin:/usr/local/share/nvm/current/bin:\\$PATH\\\" > /etc/environment'",
+  "postCreateCommand": "make install-dev && sudo bash -c 'ln -sf /usr/local/share/nvm/current/bin/node /usr/local/bin/node && ln -sf /usr/local/share/nvm/current/bin/npm /usr/local/bin/npm && ln -sf /usr/local/share/nvm/current/bin/npx /usr/local/bin/npx && echo \"export PATH=/usr/local/bin:/usr/local/share/nvm/current/bin:\\$PATH\" >> /etc/profile'",
+  "postStartCommand": "sudo bash -c 'ln -sf /usr/local/share/nvm/current/bin/node /usr/local/bin/node && ln -sf /usr/local/share/nvm/current/bin/npm /usr/local/bin/npm && ln -sf /usr/local/share/nvm/current/bin/npx /usr/local/bin/npx && echo \"PATH=/usr/local/bin:/usr/local/share/nvm/current/bin:\\$PATH\" > /etc/environment'",
   "remoteEnv": {
     "PATH": "/usr/local/bin:/usr/local/share/nvm/current/bin:${containerEnv:PATH}"
   },

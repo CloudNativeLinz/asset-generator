@@ -1,184 +1,151 @@
 [![Lint, Build, Test](https://github.com/CloudNativeLinz/asset-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/CloudNativeLinz/asset-generator/actions/workflows/ci.yml)
 
-# Image Generator
+# Cloud-Native Linz Social Media Asset Generation
 
-Template-driven event image renderer using Python, Pillow, and YAML templates.
+Template-driven event asset generation using Python, Pillow, and YAML. The project produces event and speaker images, social copy, PDF slide decks, and optional animated clips from the event data in `_data/events.yml`.
 
 ## Quick Start
 
-### Devcontainer
-
-This repository is set up for VS Code Dev Containers and GitHub Codespaces.
-
-1. Open the repo in VS Code.
-2. Run "Dev Containers: Reopen in Container".
-3. The post-create hook installs dependencies with `pip install -e .[dev]`.
-
-### Local install
+The repository supports VS Code Dev Containers and GitHub Codespaces. Opening it in the container installs the development dependencies automatically. For a local checkout with Python 3.11 or newer:
 
 ```bash
-python -m pip install --upgrade pip
-pip install -e .[dev]
+make install-dev
 ```
 
-## Commands
+Use Make targets for normal development and generation workflows. Run `make help` to see all targets and their common overrides.
 
-### Generate images
+## Generate Assets
 
-Render all events:
+List available events:
 
 ```bash
-imagegen generate --template assets/templates/meetup.yaml
+make list-events
 ```
 
-Render one event:
+Generate a full event bundle. Images, social copy, and slides are included by default:
 
 ```bash
-imagegen generate --template assets/templates/meetup.yaml --id 44
+make generate-bundle EVENT_ID=44
 ```
 
-Render resized output:
-
-```bash
-imagegen generate --template assets/templates/meetup.yaml --width 550
-```
-
-Render from a specific event source:
-
-```bash
-imagegen generate --template assets/templates/meetup.yaml --file _data/sample-events.yml
-```
-
-Render PNG:
-
-```bash
-imagegen generate --template assets/templates/meetup.yaml --format png
-```
-
-Render the standalone save-the-date image:
-
-```bash
-imagegen generate \
-   --template assets/templates/save-the-date.yaml \
-   --file _data/sample-events.yml \
-   --id 52 \
-   --format png
-```
-
-Speaker images use `assets/templates/speaker.yaml`. Each talk produces a large overlapping
-`speaker-<n>-cutout` version and a rounded `speaker-<n>-portrait` fallback so both can be reviewed
-in the web UI. Curated transparent PNGs can be placed at
-`assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example
-`assets/speaker-cutouts/49-2.png`. When no curated cutout exists, bundle generation derives a
-transparent candidate under the event's artifact directory while preserving the original image
-for the portrait version.
-
-### Generate full social bundle
-
-Render meetup image, one speaker card per talk, and LinkedIn draft copy:
-
-```bash
-imagegen generate-bundle \
-   --template assets/templates/meetup.yaml \
-   --speaker-template assets/templates/speaker.yaml \
-   --id 44
-```
-
-Output is written to `artifacts/<event-id>/` and includes:
+The bundle is written to `artifacts/<event-id>/` and contains:
 
 - `meetup.jpg` or `meetup.png`
-- `speaker-<n>-cutout.jpg` and `speaker-<n>-portrait.jpg` (or PNG)
-- `social.json` (meetup + per-talk LinkedIn drafts)
+- `speaker-<n>-cutout.<format>` and `speaker-<n>-portrait.<format>`
+- `social.json` with LinkedIn meetup and talk drafts, CTA variants, post variants, and short-form copy
+- `slides/` with title, agenda, speaker, sponsor, and CTA PNGs
+- `slides.pdf`
+- `animations/` when animation presets are requested
 
-If Azure OpenAI is configured, social copy uses the deployed model. Otherwise, rule-based fallback copy is generated.
+Azure OpenAI is used for social copy when configured. Otherwise, deterministic rule-based copy is generated.
 
-Set environment variables for Azure OpenAI:
+Generate one image with the default save-the-date template:
+
+```bash
+make generate EVENT_ID=44
+```
+
+Select another template or output size with Make variables:
+
+```bash
+make generate EVENT_ID=44 TEMPLATE=assets/templates/meetup.yaml WIDTH=550 FORMAT=png
+```
+
+Generate the default image for every event:
+
+```bash
+make generate-all TEMPLATE=assets/templates/meetup.yaml
+```
+
+Use another event source or output directory by setting `EVENTS_FILE` or `OUT_DIR` on any generation target.
+
+## Slides And Animations
+
+Generate only the PDF slide deck and its PNG pages:
+
+```bash
+make generate-slides EVENT_ID=44
+```
+
+Animations require the optional dependencies:
+
+```bash
+make install-animations
+make generate-animations EVENT_ID=44 PRESET=speaker-spotlight
+```
+
+Available presets are `speaker-spotlight` and `event-teaser`. GIF output is always produced; MP4 is also produced when the optional encoder is available. `FPS` defaults to `12`.
+
+Include one or both presets in a full bundle:
+
+```bash
+make generate-bundle EVENT_ID=44 ANIMATIONS="speaker-spotlight event-teaser"
+```
+
+## Speaker Images
+
+Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a large cutout version and a rounded portrait fallback. Curated transparent PNGs can be placed at `assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example `assets/speaker-cutouts/49-2.png`.
+
+When no curated cutout exists, bundle generation derives a transparent candidate under `artifacts/<event-id>/cutouts/` while preserving the original image for the portrait version.
+
+## Preview Studio
+
+Start the local web studio and optionally select an initial event:
+
+```bash
+make run EVENT_ID=44
+```
+
+Open <http://localhost:8000>. Override `HOST`, `PORT`, `EVENTS_FILE`, or `TEMPLATE` through Make variables when needed.
+
+The studio supports:
+
+- social-only, image-only, and full-bundle generation actions
+- editable meetup and per-talk LinkedIn drafts
+- meetup and individual talk regeneration
+- edited draft storage in `artifacts/<event-id>/social-edited.json`
+- existing bundle loading and image preview/download
+- persistent CTA, image width, and image format settings
+
+## Azure OpenAI
+
+Copy the relevant values from `env.sample` into your environment:
 
 ```bash
 export AZURE_OPENAI_ENDPOINT="https://<resource>.openai.azure.com"
 export AZURE_OPENAI_API_KEY="<api-key>"
 export AZURE_OPENAI_DEPLOYMENT="<deployment-name>"
-# optional
-export AZURE_OPENAI_API_VERSION="2024-06-01"
 ```
 
-### List events
-
-```bash
-imagegen list-events --file _data/events.yml
-```
-
-### Preview web UI
-
-```bash
-imagegen preview --template assets/templates/meetup.yaml --id 44
-```
-
-Preview runs on `http://localhost:8000` by default.
-
-The web UI now supports:
-
-- social-first studio workflow (event context, action board, drafts editor, assets panel)
-- separate generation actions: social only, images only, or full bundle
-- editable LinkedIn meetup and per-talk drafts with CTA fields
-- regenerate actions for meetup and individual talk drafts
-- save edited drafts to `artifacts/<event-id>/social-edited.json`
-- load existing generated bundles from disk and preview/download image assets
+`AZURE_OPENAI_API_VERSION`, `IMAGEGEN_LLM_TEMPERATURE`, and `IMAGEGEN_LLM_MAX_TOKENS` are optional. Do not commit API keys.
 
 ## Template Format
 
-Templates are YAML files with ordered `elements`.
+Templates are YAML files with a canvas background and ordered `elements`.
 
-- `type: text`
-   - `value`: Jinja2 expression, for example `{{ event.title }}`
-   - `box`: `{x, y, w, h}` in pixels
-   - styling: `font`, `size`, `color`, `align`, `valign`, `wrap`, `fit: shrink`
-- `type: image`
-   - `source`: local path or URL (supports Jinja2)
-   - `fit`: `cover`, `contain`, or `fill`
-   - `shape`: `rect`, `rounded`, or `circle`
+- `type: text` supports Jinja2 `value`, pixel `box`, font styling, alignment, wrapping, and `fit: shrink`.
+- `type: image` supports local or remote Jinja2 `source` values, `cover`, `contain`, `contain-bottom`, or `fill` fitting, and rectangular, rounded, or circular shapes.
+- `type: rectangle` adds a solid-color region.
 
-Built-in Jinja filters:
-
-- `date`
-- `slug`
-- `upper`
-- `lower`
-- `default`
+Built-in Jinja filters are `date`, `slug`, `upper`, `lower`, and `default`.
 
 ## Project Layout
 
 ```text
-.
-├── _data/
-├── assets/
-│   ├── backgrounds/
-│   ├── fonts/
-│   ├── overlays/
-│   ├── speaker-images/
-│   └── templates/
-│       └── meetup.yaml
-├── src/imagegen/
-│   ├── cli.py
-│   ├── config.py
-│   ├── loader.py
-│   ├── renderer.py
-│   ├── text.py
-│   ├── images.py
-│   └── web/
-│       ├── app.py
-│       └── templates/
-│           ├── index.html
-│           └── settings.html
-└── tests/
+_data/                  Event YAML data
+assets/                 Templates, fonts, backgrounds, logos, and speaker inputs
+artifacts/              Generated event bundles and studio settings
+src/imagegen/           CLI, rendering, social, slide, animation, and bundle logic
+src/imagegen/web/       FastAPI preview studio
+tests/                  Automated tests and fixtures
 ```
 
-## Testing
+## Development
 
 ```bash
-pytest
+make format
+make lint
+make test
 ```
 
-## CI
-
-GitHub Actions workflow [`.github/workflows/generate-image.yml`](.github/workflows/generate-image.yml) installs Python dependencies, renders images via `imagegen generate`, and uploads artifacts.
+GitHub Actions runs lint, package build, and tests on pushes and pull requests to `main`. The generation workflow renders meetup images at full size and width 550, commits changed generated assets, and uploads them as workflow artifacts.
