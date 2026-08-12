@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Social Command Wall</title>
+    <title>Cloud-Native Linz Social Media Asset Generation</title>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap");
 
@@ -240,6 +240,64 @@
         gap: 0.55rem;
       }
 
+      .artifact-surface {
+        position: relative;
+        min-height: 8rem;
+      }
+
+      .artifact-loading {
+        position: absolute;
+        inset: 0.8rem 0 0;
+        z-index: 2;
+        display: none;
+        place-items: center;
+        min-height: 7rem;
+        border: 1px solid rgba(102, 126, 234, 0.25);
+        border-radius: 12px;
+        color: var(--brand);
+        background: rgba(249, 250, 251, 0.9);
+        backdrop-filter: blur(3px);
+      }
+
+      .artifact-surface.is-loading .artifact-loading {
+        display: grid;
+      }
+
+      .artifact-loader {
+        display: grid;
+        justify-items: center;
+        gap: 0.65rem;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+
+      .artifact-spinner {
+        width: 2.25rem;
+        height: 2.25rem;
+        border: 3px solid rgba(102, 126, 234, 0.2);
+        border-top-color: var(--brand);
+        border-radius: 50%;
+        animation: artifact-spin 0.75s linear infinite;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.58;
+      }
+
+      @keyframes artifact-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .artifact-spinner {
+          animation: none;
+        }
+      }
+
       .asset-card {
         border: 1px solid #e5e7eb;
         border-radius: 12px;
@@ -380,7 +438,7 @@
   <body>
     <main class="app">
       <section class="top">
-        <h1>Social Command Wall</h1>
+        <h1>Cloud-Native Linz Social Media Asset Generation</h1>
         <p>Every core artifact visible at once: inputs, generated images, meetup copy, and per-talk drafts.</p>
         <div class="top-actions">
           <a class="btn-light" href="/settings">Settings</a>
@@ -391,7 +449,6 @@
         <aside class="card">
           <div class="surface-title">
             <h2>Control Deck</h2>
-            <span class="subtle mono">LinkedIn mode</span>
           </div>
           <p class="sub">Configure generation and keep track of event details.</p>
 
@@ -414,8 +471,10 @@
             <button id="btnGenerateBundle" class="btn-primary" type="button">Generate All</button>
             <button id="btnLoadSnapshot" class="btn-light" type="button">Load Existing</button>
           </div>
-
+          
+          <br>Event Info
           <div class="event-meta" id="eventMeta"></div>
+          <br>Talk Info
           <div class="talk-list" id="talkList"></div>
           <div class="status" id="status">Ready.</div>
         </aside>
@@ -427,7 +486,15 @@
           </div>
           <p class="sub">All generated images shown simultaneously for quick review.</p>
 
-          <div class="artifact-grid" id="artifactGrid"></div>
+          <div class="artifact-surface" id="artifactSurface" aria-busy="false">
+            <div class="artifact-grid" id="artifactGrid"></div>
+            <div class="artifact-loading" id="artifactLoading" role="status" aria-live="polite">
+              <div class="artifact-loader">
+                <span class="artifact-spinner" aria-hidden="true"></span>
+                <span id="artifactLoadingText">Loading artifacts...</span>
+              </div>
+            </div>
+          </div>
           <p class="sub" style="margin-top: 0.7rem;">Template: <span class="mono">{{ template }}</span></p>
           <p class="sub">Speaker template: <span class="mono">{{ speaker_template }}</span></p>
         </section>
@@ -479,8 +546,10 @@
         talkList: document.getElementById("talkList"),
         meetupPost: document.getElementById("meetupPost"),
         talkEditors: document.getElementById("talkEditors"),
+        artifactSurface: document.getElementById("artifactSurface"),
         artifactGrid: document.getElementById("artifactGrid"),
         artifactCount: document.getElementById("artifactCount"),
+        artifactLoadingText: document.getElementById("artifactLoadingText"),
         btnGenerateSocial: document.getElementById("btnGenerateSocial"),
         btnGenerateImages: document.getElementById("btnGenerateImages"),
         btnGenerateBundle: document.getElementById("btnGenerateBundle"),
@@ -496,6 +565,16 @@
       function setStatus(text, ok = false) {
         dom.status.textContent = text;
         dom.status.classList.toggle("ok", ok);
+      }
+
+      function setArtifactsLoading(loading, message = "Loading artifacts...") {
+        dom.artifactSurface.classList.toggle("is-loading", loading);
+        dom.artifactSurface.setAttribute("aria-busy", String(loading));
+        dom.artifactLoadingText.textContent = message;
+        dom.eventId.disabled = loading;
+        dom.btnGenerateImages.disabled = loading;
+        dom.btnGenerateBundle.disabled = loading;
+        dom.btnLoadSnapshot.disabled = loading;
       }
 
       async function apiGet(url) {
@@ -680,9 +759,10 @@
         openLightbox(next);
       }
 
-      function renderAssets(snapshot) {
+      async function renderAssets(snapshot) {
         state.snapshot = snapshot || null;
         dom.artifactGrid.innerHTML = "";
+        const imageLoads = [];
 
         const images = snapshot?.images || [];
         const meetupIndex = images.findIndex((asset) => /(^|[-_])meetup([-.]|$)/i.test(asset.name));
@@ -703,9 +783,15 @@
           }
 
           const image = document.createElement("img");
-          image.src = `${asset.url}?t=${Date.now()}`;
           image.alt = asset.name;
           image.tabIndex = 0;
+          imageLoads.push(
+            new Promise((resolve) => {
+              image.addEventListener("load", resolve, { once: true });
+              image.addEventListener("error", resolve, { once: true });
+            }),
+          );
+          image.src = `${asset.url}?t=${Date.now()}`;
 
           image.addEventListener("click", () => openLightbox(index));
           image.addEventListener("keydown", (event) => {
@@ -737,16 +823,23 @@
         if (!orderedImages.length) {
           closeLightbox();
         }
+
+        await Promise.all(imageLoads);
       }
 
       async function loadSnapshot() {
-        const snapshot = await apiGet(`/api/bundle/${state.eventId}?out=artifacts`);
-        renderAssets(snapshot);
-        if (snapshot.social) {
-          applySocial(snapshot.social);
-          setStatus("Loaded existing bundle and social drafts.", true);
-        } else {
-          setStatus("Loaded existing image assets.", true);
+        setArtifactsLoading(true);
+        try {
+          const snapshot = await apiGet(`/api/bundle/${state.eventId}?out=artifacts`);
+          await renderAssets(snapshot);
+          if (snapshot.social) {
+            applySocial(snapshot.social);
+            setStatus("Loaded existing bundle and social drafts.", true);
+          } else {
+            setStatus("Loaded existing image assets.", true);
+          }
+        } finally {
+          setArtifactsLoading(false);
         }
       }
 
@@ -759,21 +852,31 @@
 
       async function generateImagesOnly() {
         setStatus("Generating meetup and speaker images...");
-        const response = await apiPost("/api/generate-images", bodyForGeneration(false));
-        renderAssets(response.snapshot);
-        setStatus("Images generated.", true);
+        setArtifactsLoading(true, "Generating images...");
+        try {
+          const response = await apiPost("/api/generate-images", bodyForGeneration(false));
+          await renderAssets(response.snapshot);
+          setStatus("Images generated.", true);
+        } finally {
+          setArtifactsLoading(false);
+        }
       }
 
       async function generateFullBundle() {
         setStatus("Generating full social studio bundle...");
-        const response = await apiPost("/api/generate-bundle", bodyForGeneration(true));
-        if (response.social) {
-          applySocial(response.social);
+        setArtifactsLoading(true, "Generating artifacts...");
+        try {
+          const response = await apiPost("/api/generate-bundle", bodyForGeneration(true));
+          if (response.social) {
+            applySocial(response.social);
+          }
+          if (response.snapshot) {
+            await renderAssets(response.snapshot);
+          }
+          setStatus("Bundle generated: drafts + images are ready.", true);
+        } finally {
+          setArtifactsLoading(false);
         }
-        if (response.snapshot) {
-          renderAssets(response.snapshot);
-        }
-        setStatus("Bundle generated: drafts + images are ready.", true);
       }
 
       async function regenerateMeetup() {
@@ -797,14 +900,17 @@
       }
 
       async function onEventChange() {
+        setArtifactsLoading(true, "Loading event artifacts...");
         try {
           state.eventId = Number(dom.eventId.value);
           applySocial(null);
-          renderAssets(null);
+          await renderAssets(null);
           await loadEventInfo();
           await loadSnapshot();
         } catch (error) {
           setStatus(`Failed to load event context: ${String(error).slice(0, 120)}`);
+        } finally {
+          setArtifactsLoading(false);
         }
       }
 
