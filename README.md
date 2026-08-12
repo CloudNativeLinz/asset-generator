@@ -65,12 +65,13 @@ imagegen generate \
    --format png
 ```
 
-Speaker images use `assets/templates/speaker.yaml` and are generated once per talk by
-`generate-bundle`. The dynamic fields are the talk image, talk title, speaker name, event
-date/time, and host. For the full-height overlapping portrait treatment, add a transparent PNG
-at `assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example
-`assets/speaker-cutouts/49-2.png`. When no cutout exists, the template falls back to the talk's
-regular `image` value.
+Speaker images use `assets/templates/speaker.yaml`. Each talk produces a large overlapping
+`speaker-<n>-cutout` version and a rounded `speaker-<n>-portrait` fallback so both can be reviewed
+in the web UI. Curated transparent PNGs can be placed at
+`assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example
+`assets/speaker-cutouts/49-2.png`. When no curated cutout exists, bundle generation derives a
+transparent candidate under the event's artifact directory while preserving the original image
+for the portrait version.
 
 ### Generate full social bundle
 
@@ -86,7 +87,7 @@ imagegen generate-bundle \
 Output is written to `artifacts/<event-id>/` and includes:
 
 - `meetup.jpg` or `meetup.png`
-- `speaker-<n>.jpg` or `speaker-<n>.png`
+- `speaker-<n>-cutout.jpg` and `speaker-<n>-portrait.jpg` (or PNG)
 - `social.json` (meetup + per-talk LinkedIn drafts)
 
 If Azure OpenAI is configured, social copy uses the deployed model. Otherwise, rule-based fallback copy is generated.

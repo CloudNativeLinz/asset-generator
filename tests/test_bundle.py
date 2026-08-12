@@ -21,5 +21,8 @@ def test_generate_event_bundle_creates_images_and_social(tmp_path: Path, monkeyp
 
     assert bundle.images.meetup_image is not None
     assert Path(bundle.images.meetup_image).exists()
-    assert len(bundle.images.speaker_images) == len(event.talks)
+    assert len(bundle.images.speaker_images) == len(event.talks) * 2
+    assert Path(bundle.output_dir, "speaker-1-cutout.jpg").exists()
+    assert Path(bundle.output_dir, "speaker-1-portrait.jpg").exists()
+    assert Path(bundle.output_dir, "cutouts", "speaker-1.png").exists()
     assert Path(bundle.output_dir, "social.json").exists()

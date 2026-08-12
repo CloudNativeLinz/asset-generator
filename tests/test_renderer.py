@@ -110,6 +110,35 @@ def test_render_speaking_at_template(monkeypatch) -> None:
     assert rendered.getpixel((298, 803))[:3] == (0, 0, 0)
 
 
+def test_render_speaking_at_template_bottom_aligns_square_cutout(monkeypatch) -> None:
+    speaker_cutout = Image.new("RGBA", (400, 400), (0, 0, 102, 255))
+    monkeypatch.setattr(
+        "imagegen.renderer.load_source_image",
+        lambda source, cache_dir: speaker_cutout if source else None,
+    )
+    monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
+
+    template = load_template("assets/templates/speaker.yaml")
+    event = Event(
+        id=103,
+        title="Speaker Event",
+        date="2026-04-21",
+        host="Host",
+        talks=[{"title": "A talk", "speaker": "A speaker", "cutout": "speaker.png"}],
+    )
+
+    rendered = render_event(
+        template=template,
+        event=event,
+        output_format="png",
+        extra_context={"talk_index": 0, "speaker_variant": "cutout"},
+    )
+
+    assert rendered.getpixel((750, 175))[:3] == (255, 255, 255)
+    assert rendered.getpixel((750, 250))[:3] == (0, 0, 102)
+    assert rendered.getpixel((1000, 892))[:3] == (0, 0, 102)
+
+
 def test_render_speaking_at_template_with_regular_portrait(monkeypatch) -> None:
     portrait = Image.new("RGBA", (400, 400), (0, 0, 102, 255))
     monkeypatch.setattr(

@@ -72,7 +72,7 @@ class TextElement(BaseElement):
 class ImageElement(BaseElement):
     type: Literal["image"] = "image"
     source: str
-    fit: Literal["cover", "contain", "fill"] = "cover"
+    fit: Literal["cover", "contain", "contain-bottom", "fill"] = "cover"
     shape: Literal["rect", "rounded", "circle"] = "rect"
     corner_radius: int = 24
 

@@ -13,6 +13,7 @@ from .config import (
     SlideDeck,
 )
 from .loader import load_template
+from .images import generate_speaker_cutout
 from .renderer import render_event
 from .slides import generate_slide_deck
 from .social import generate_social_bundle
@@ -54,16 +55,39 @@ def generate_event_bundle(
     meetup_path = _save_image(meetup_image, meetup_destination, fmt)
 
     speaker_paths: list[str] = []
-    for index, _talk in enumerate(event.talks):
-        speaker_image = render_event(
+    for existing in event_dir.glob("speaker-*.*"):
+        if existing.suffix.lower() in {".jpg", ".png"}:
+            existing.unlink()
+
+    for index, talk in enumerate(event.talks):
+        if not talk.cutout and talk.image:
+            generated_cutout = generate_speaker_cutout(
+                str(talk.image),
+                event_dir / "cutouts" / f"speaker-{index + 1}.png",
+                Path(".cache/images"),
+            )
+            if generated_cutout is not None:
+                talk.cutout = generated_cutout
+
+        cutout_image = render_event(
             template=speaker_template,
             event=event,
             width=width,
             output_format=fmt,
-            extra_context={"talk_index": index},
+            extra_context={"talk_index": index, "speaker_variant": "cutout"},
         )
-        speaker_destination = event_dir / f"speaker-{index + 1}.{fmt}"
-        speaker_paths.append(_save_image(speaker_image, speaker_destination, fmt))
+        cutout_destination = event_dir / f"speaker-{index + 1}-cutout.{fmt}"
+        speaker_paths.append(_save_image(cutout_image, cutout_destination, fmt))
+
+        portrait_image = render_event(
+            template=speaker_template,
+            event=event,
+            width=width,
+            output_format=fmt,
+            extra_context={"talk_index": index, "speaker_variant": "portrait"},
+        )
+        portrait_destination = event_dir / f"speaker-{index + 1}-portrait.{fmt}"
+        speaker_paths.append(_save_image(portrait_image, portrait_destination, fmt))
 
     social = generate_social_bundle(event, cta_defaults=cta_defaults) if include_social else None
 

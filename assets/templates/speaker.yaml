@@ -11,15 +11,16 @@ defaults:
 elements:
   - id: speaker_cutout
     type: image
-    source: "{{ event.talks[talk_index].cutout | default('') }}"
-    box: { x: 493, y: 166, w: 586, h: 727 }
+    source: >-
+      {% if speaker_variant != 'portrait' %}{{ event.talks[talk_index].cutout | default(event.talks[talk_index].image) }}{% endif %}
+    box: { x: 420, y: 130, w: 660, h: 763 }
     shape: rect
-    fit: contain
+    fit: contain-bottom
 
   - id: speaker_portrait
     type: image
     source: >-
-      {% if not event.talks[talk_index].cutout %}{{ event.talks[talk_index].image | default('') }}{% endif %}
+      {% if speaker_variant == 'portrait' %}{{ event.talks[talk_index].image | default('') }}{% elif speaker_variant == 'auto' and not event.talks[talk_index].cutout %}{{ event.talks[talk_index].image | default('') }}{% endif %}
     box: { x: 640, y: 350, w: 400, h: 440 }
     shape: rounded
     corner_radius: 24

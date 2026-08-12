@@ -186,7 +186,7 @@ def render_event(
     canvas.alpha_composite(background)
 
     env = _jinja_env()
-    context = {"event": _event_context(event)}
+    context = {"event": _event_context(event), "speaker_variant": "auto"}
     if extra_context:
         context.update(extra_context)
     draw = ImageDraw.Draw(canvas)
