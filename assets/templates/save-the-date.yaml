@@ -1,0 +1,86 @@
+name: save-the-date
+background: assets/backgrounds/TEMPLATE.png
+size:
+  width: 1200
+  height: 1200
+defaults:
+  font: assets/fonts/DejaVuSans.ttf
+  color: "#000000"
+  size: 28
+
+elements:
+  - id: sponsor_logo
+    type: image
+    source: "{{ event.sponsor_logo | default('') }}"
+    box: { x: 746, y: 387, w: 274, h: 285 }
+    shape: rect
+    fit: cover
+
+  - id: date_background
+    type: rectangle
+    box: { x: 251, y: 803, w: 698, h: 93 }
+    color: "#000000"
+
+  - id: date
+    type: text
+    value: "{{ event.date | date('%B %d, %Y') | upper }}"
+    box: { x: 267, y: 803, w: 666, h: 93 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 64
+    color: "#FFFFFF"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: host_background
+    type: rectangle
+    box: { x: 376, y: 899, w: 448, h: 86 }
+    color: "#000000"
+
+  - id: host
+    type: text
+    value: "{{ event.host | upper }}"
+    box: { x: 392, y: 899, w: 416, h: 86 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 64
+    color: "#FFFFFF"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: event_title
+    type: text
+    value: "{{ event.title | default('Save the Date') }}"
+    box: { x: 251, y: 1015, w: 698, h: 55 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 40
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: date_time
+    type: text
+    value: "📅  {{ event.date | date('%A, %B %d') }}{% if event.time %} | {{ event.time }}{% endif %}"
+    box: { x: 120, y: 1078, w: 960, h: 38 }
+    size: 26
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: venue
+    type: text
+    value: >-
+      📍  {{ event.address | default(event.venue | default(event.host)) }}
+    box: { x: 120, y: 1118, w: 960, h: 38 }
+    size: 26
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink

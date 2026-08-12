@@ -22,6 +22,16 @@
       speaker: "Test Speaker 2"
       image: "/assets/speaker-images/jetzlstorfer.jpg"
 
+- id: 52
+  title: "Save the Date"
+  date: "2026-09-16"
+  time: "17:30"
+  venue: "Netcetera"
+  address: "Europaplatz 2, 4020 Linz"
+  host: "Netcetera"
+  sponsor_logo: "assets/sponsor-logos/netcetera.png"
+  talks: []
+
 - id: 44
   title: "November 2025 edition at MIC"
   date: "2025-11-25"

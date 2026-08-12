@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from PIL import Image
+
+from imagegen.config import Event
 from imagegen.loader import find_event, load_events, load_template
 from imagegen.renderer import render_event
 from imagegen.text import resolve_font_path
@@ -41,3 +44,30 @@ def test_emoji_title_uses_unicode_fallback_font() -> None:
     font_path = resolve_font_path("assets/fonts/LBRITE.TTF", "🚀 Cloud Native Linz")
 
     assert font_path == "assets/fonts/LBRITE.TTF"
+
+
+def test_render_save_the_date_template(monkeypatch) -> None:
+    sponsor_image = Image.new("RGBA", (300, 300), "#000066")
+    monkeypatch.setattr(
+        "imagegen.renderer.load_source_image", lambda source, cache_dir: sponsor_image
+    )
+    monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
+
+    template = load_template("assets/templates/save-the-date.yaml")
+    event = Event(
+        id=100,
+        title="Save the Date",
+        date="2026-09-16",
+        time="17:30",
+        venue="Netcetera",
+        address="Example Street 1, 4020 Linz",
+        host="Netcetera",
+        sponsor_logo="sponsor.png",
+    )
+
+    rendered = render_event(template=template, event=event, output_format="png")
+
+    assert rendered.size == (1200, 1200)
+    assert rendered.getpixel((251, 803))[:3] == (0, 0, 0)
+    assert rendered.getpixel((376, 899))[:3] == (0, 0, 0)
+    assert rendered.getpixel((850, 500))[:3] == (0, 0, 102)

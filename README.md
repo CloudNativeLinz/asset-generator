@@ -55,6 +55,16 @@ Render PNG:
 imagegen generate --template assets/templates/meetup.yaml --format png
 ```
 
+Render the standalone save-the-date image:
+
+```bash
+imagegen generate \
+   --template assets/templates/save-the-date.yaml \
+   --file _data/sample-events.yml \
+   --id 52 \
+   --format png
+```
+
 ### Generate full social bundle
 
 Render meetup image, one speaker card per talk, and LinkedIn draft copy:

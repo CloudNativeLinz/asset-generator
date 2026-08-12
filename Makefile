@@ -1,6 +1,6 @@
 PYTHON ?= python3
 PIP ?= $(PYTHON) -m pip
-TEMPLATE ?= assets/templates/meetup.yaml
+TEMPLATE ?= assets/templates/save-the-date.yaml
 EVENTS_FILE ?= _data/events.yml
 OUT_DIR ?= artifacts
 EVENT_ID ?=
@@ -32,7 +32,7 @@ help:
 	@echo "Common overrides:"
 	@echo "  make generate EVENT_ID=44 WIDTH=550 FORMAT=jpg"
 	@echo "  make generate-all EVENTS_FILE=_data/sample-events.yml"
-	@echo "  make run EVENT_ID=44 PORT=8000"
+	@echo "  make run EVENTS_FILE=_data/sample-events.yml EVENT_ID=52 PORT=8000"
 
 install:
 	$(PIP) install --break-system-packages -e .

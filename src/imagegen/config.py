@@ -24,6 +24,9 @@ class Event(BaseModel):
     id: int
     title: str = ""
     date: str | date | None = None
+    time: str = Field(default="", validation_alias=AliasChoices("time", "doors_open"))
+    venue: str = ""
+    address: str = ""
     host: str = ""
     event_link: str | HttpUrl | None = None
     registrations: str | int | None = None
@@ -73,7 +76,14 @@ class ImageElement(BaseElement):
     corner_radius: int = 24
 
 
-TemplateElement = Annotated[TextElement | ImageElement, Field(discriminator="type")]
+class RectangleElement(BaseElement):
+    type: Literal["rectangle"] = "rectangle"
+    color: str = "#000000"
+
+
+TemplateElement = Annotated[
+    TextElement | ImageElement | RectangleElement, Field(discriminator="type")
+]
 
 
 class CanvasSize(BaseModel):

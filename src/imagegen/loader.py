@@ -126,8 +126,12 @@ def _normalize_null_fields(raw_events: list[dict[str, Any]]) -> list[dict[str, A
             continue
 
         item = dict(event)
-        if item.get("host") is None:
-            item["host"] = ""
+        if item.get("time") is None:
+            item["time"] = item.get("doors_open") or ""
+
+        for field in ("host", "venue", "address"):
+            if item.get(field) is None:
+                item[field] = ""
         normalized.append(item)
 
     return normalized

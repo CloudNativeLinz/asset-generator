@@ -85,3 +85,64 @@ def test_load_events_accepts_null_host_values(tmp_path: Path) -> None:
 
     assert len(events) == 1
     assert events[0].host == ""
+
+
+def test_load_events_accepts_time_and_venue(tmp_path: Path) -> None:
+    events_file = tmp_path / "events.yml"
+    events_file.write_text(
+        """
+- id: 8
+  title: "Save the Date"
+  date: "2026-09-16"
+  time: "17:30"
+  venue: "Netcetera"
+  address: "Example Street 1, 4020 Linz"
+  host: "Netcetera"
+  talks: []
+""".strip(),
+        encoding="utf-8",
+    )
+
+    event = load_events(str(events_file))[0]
+
+    assert event.time == "17:30"
+    assert event.venue == "Netcetera"
+    assert event.address == "Example Street 1, 4020 Linz"
+
+
+def test_load_events_normalizes_null_time_and_venue(tmp_path: Path) -> None:
+    events_file = tmp_path / "events.yml"
+    events_file.write_text(
+        """
+- id: 9
+  title: "Event with incomplete details"
+  time: null
+  venue: null
+  address: null
+  talks: []
+""".strip(),
+        encoding="utf-8",
+    )
+
+    event = load_events(str(events_file))[0]
+
+    assert event.time == ""
+    assert event.venue == ""
+    assert event.address == ""
+
+
+def test_load_events_maps_doors_open_to_time(tmp_path: Path) -> None:
+    events_file = tmp_path / "events.yml"
+    events_file.write_text(
+        """
+- id: 10
+  title: "Event using website schema"
+  doors_open: "17:30"
+  talks: []
+""".strip(),
+        encoding="utf-8",
+    )
+
+    event = load_events(str(events_file))[0]
+
+    assert event.time == "17:30"

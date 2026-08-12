@@ -7,7 +7,7 @@ from typing import Any
 from jinja2 import Environment
 from PIL import Image, ImageDraw
 
-from .config import Event, ImageElement, Template, TextElement
+from .config import Event, ImageElement, RectangleElement, Template, TextElement
 from .images import apply_shape, fit_image, load_source_image
 from .text import (
     draw_text_with_emoji,
@@ -194,7 +194,17 @@ def render_event(
     default_size = template.defaults.size
 
     for element in template.elements:
-        if isinstance(element, TextElement):
+        if isinstance(element, RectangleElement):
+            draw.rectangle(
+                (
+                    element.box.x,
+                    element.box.y,
+                    element.box.x + element.box.w - 1,
+                    element.box.y + element.box.h - 1,
+                ),
+                fill=element.color,
+            )
+        elif isinstance(element, TextElement):
             rendered_value = _render_template_string(element.value, context, env)
             _draw_text_element(
                 canvas=canvas,
