@@ -71,7 +71,9 @@ def _event_context(event: Event) -> dict[str, Any]:
 
     padded_talks = [dict(talk) if isinstance(talk, dict) else {} for talk in talks]
     while len(padded_talks) < 2:
-        padded_talks.append({"title": "", "speaker": "", "image": "", "social": None})
+        padded_talks.append(
+            {"title": "", "speaker": "", "image": "", "cutout": "", "social": None}
+        )
 
     context["talks"] = padded_talks
     return context

@@ -146,3 +146,26 @@ def test_load_events_maps_doors_open_to_time(tmp_path: Path) -> None:
     event = load_events(str(events_file))[0]
 
     assert event.time == "17:30"
+
+
+def test_load_events_prefers_local_speaker_cutout(tmp_path: Path, monkeypatch) -> None:
+    events_file = tmp_path / "events.yml"
+    events_file.write_text(
+        """
+- id: 11
+  title: "Speaker event"
+  talks:
+    - title: "A talk"
+      speaker: "A speaker"
+      image: "portrait.jpg"
+""".strip(),
+        encoding="utf-8",
+    )
+    cutouts_dir = tmp_path / "assets" / "speaker-cutouts"
+    cutouts_dir.mkdir(parents=True)
+    (cutouts_dir / "11-1.png").write_bytes(b"png-placeholder")
+    monkeypatch.chdir(tmp_path)
+
+    event = load_events(str(events_file))[0]
+
+    assert event.talks[0].cutout == "/assets/speaker-cutouts/11-1.png"

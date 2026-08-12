@@ -53,9 +53,9 @@ elements:
   - id: event_title
     type: text
     value: "{{ event.title | default('Save the Date') }}"
-    box: { x: 251, y: 1015, w: 698, h: 55 }
+    box: { x: 120, y: 1015, w: 960, h: 55 }
     font: assets/fonts/DejaVuSans-Bold.ttf
-    size: 40
+    size: 44
     color: "#000000"
     align: center
     valign: middle

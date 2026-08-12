@@ -71,3 +71,74 @@ def test_render_save_the_date_template(monkeypatch) -> None:
     assert rendered.getpixel((251, 803))[:3] == (0, 0, 0)
     assert rendered.getpixel((376, 899))[:3] == (0, 0, 0)
     assert rendered.getpixel((850, 500))[:3] == (0, 0, 102)
+
+
+def test_render_speaking_at_template(monkeypatch) -> None:
+    speaker_cutout = Image.new("RGBA", (586, 727), (0, 0, 102, 255))
+    monkeypatch.setattr(
+        "imagegen.renderer.load_source_image",
+        lambda source, cache_dir: speaker_cutout if source else None,
+    )
+    monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
+
+    template = load_template("assets/templates/speaker.yaml")
+    event = Event(
+        id=101,
+        title="Speaker Event",
+        date="2026-05-26",
+        time="17:30",
+        host="Dynatrace",
+        talks=[
+            {
+                "title": "SBOBs: Shipping Intended Behavior",
+                "speaker": "Constanze B. Roedig",
+                "image": "speaker.jpg",
+                "cutout": "speaker.png",
+            }
+        ],
+    )
+
+    rendered = render_event(
+        template=template,
+        event=event,
+        output_format="png",
+        extra_context={"talk_index": 0},
+    )
+
+    assert rendered.size == (1200, 1200)
+    assert rendered.getpixel((493, 166))[:3] == (0, 0, 102)
+    assert rendered.getpixel((298, 803))[:3] == (0, 0, 0)
+
+
+def test_render_speaking_at_template_with_regular_portrait(monkeypatch) -> None:
+    portrait = Image.new("RGBA", (400, 400), (0, 0, 102, 255))
+    monkeypatch.setattr(
+        "imagegen.renderer.load_source_image", lambda source, cache_dir: portrait if source else None
+    )
+    monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
+
+    template = load_template("assets/templates/speaker.yaml")
+    event = Event(
+        id=102,
+        title="Speaker Event",
+        date="2026-04-21",
+        time="17:30",
+        host="karriere.at",
+        talks=[
+            {
+                "title": "What Going Cloud Native Taught Us About Developer Experience",
+                "speaker": "Thomas Schuetz",
+                "image": "speaker.jpg",
+            }
+        ],
+    )
+
+    rendered = render_event(
+        template=template,
+        event=event,
+        output_format="png",
+        extra_context={"talk_index": 0},
+    )
+
+    assert rendered.getpixel((650, 360))[:3] == (0, 0, 102)
+    assert rendered.getpixel((500, 200))[:3] == (255, 255, 255)

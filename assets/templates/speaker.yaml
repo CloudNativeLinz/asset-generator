@@ -1,72 +1,84 @@
-name: speaker-card
-background: assets/backgrounds/meetup-background.jpg
+name: speaking-at
+background: assets/backgrounds/SPEAKER-TEMPLATE.png
 size:
-  width: 1080
-  height: 1080
+  width: 1200
+  height: 1200
 defaults:
-  font: assets/fonts/LBRITE.TTF
-  color: "#FFFFFF"
-  size: 32
+  font: assets/fonts/DejaVuSans.ttf
+  color: "#000000"
+  size: 28
 
 elements:
-  - id: speaker_photo
+  - id: speaker_cutout
     type: image
-    source: "{{ event.talks[talk_index].image | default('') }}"
-    box: { x: 110, y: 150, w: 310, h: 310 }
-    shape: circle
+    source: "{{ event.talks[talk_index].cutout | default('') }}"
+    box: { x: 493, y: 166, w: 586, h: 727 }
+    shape: rect
+    fit: contain
+
+  - id: speaker_portrait
+    type: image
+    source: >-
+      {% if not event.talks[talk_index].cutout %}{{ event.talks[talk_index].image | default('') }}{% endif %}
+    box: { x: 640, y: 350, w: 400, h: 440 }
+    shape: rounded
+    corner_radius: 24
     fit: cover
 
-  - id: badge
-    type: text
-    value: "Speaker Spotlight"
-    box: { x: 460, y: 160, w: 500, h: 80 }
-    font: assets/fonts/LBRITED.TTF
-    size: 48
-    color: "#FFFFFF"
-    align: left
-    valign: top
-    wrap: false
+  - id: talk_title_background_top
+    type: rectangle
+    box: { x: 298, y: 803, w: 604, h: 89 }
+    color: "#000000"
 
-  - id: meetup_title
-    type: text
-    value: "{{ event.title | default('Meetup Edition') }}"
-    box: { x: 110, y: 500, w: 860, h: 140 }
-    size: 58
-    color: "#FFFFFF"
-    align: left
-    valign: top
-    wrap: true
-    fit: shrink
+  - id: talk_title_background_bottom
+    type: rectangle
+    box: { x: 245, y: 892, w: 710, h: 93 }
+    color: "#000000"
 
   - id: talk_title
     type: text
-    value: "{{ event.talks[talk_index].title | default('Talk title coming soon') }}"
-    box: { x: 110, y: 655, w: 860, h: 175 }
-    size: 46
-    color: "#000000"
-    align: left
-    valign: top
+    value: "{{ event.talks[talk_index].title | default('Talk title coming soon') | upper }}"
+    box: { x: 315, y: 803, w: 570, h: 182 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 55
+    color: "#FFFFFF"
+    align: center
+    valign: middle
     wrap: true
     fit: shrink
+    line_spacing: 1.35
 
   - id: speaker_name
     type: text
     value: "{{ event.talks[talk_index].speaker | default('Guest speaker') }}"
-    box: { x: 110, y: 840, w: 860, h: 90 }
-    font: assets/fonts/LBRITED.TTF
-    size: 42
+    box: { x: 245, y: 1015, w: 710, h: 55 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 40
     color: "#000000"
-    align: left
-    valign: top
-    wrap: true
+    align: center
+    valign: middle
+    wrap: false
     fit: shrink
 
-  - id: date
+  - id: date_time
     type: text
-    value: "{{ event.date | date('%d %b %Y') }}"
-    box: { x: 110, y: 950, w: 600, h: 70 }
-    size: 34
+    value: "📅  {{ event.date | date('%A, %B %d') }}{% if event.time %} | {{ event.time }}{% endif %}"
+    box: { x: 120, y: 1077, w: 960, h: 38 }
+    size: 26
     color: "#000000"
-    align: left
-    valign: top
+    align: center
+    valign: middle
     wrap: false
+    fit: shrink
+
+  - id: host
+    type: text
+    value: >-
+      📍  {{ event.address | default(event.host | default(event.venue)) }}
+    box: { x: 120, y: 1118, w: 960, h: 38 }
+    size: 26
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink

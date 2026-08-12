@@ -65,6 +65,13 @@ imagegen generate \
    --format png
 ```
 
+Speaker images use `assets/templates/speaker.yaml` and are generated once per talk by
+`generate-bundle`. The dynamic fields are the talk image, talk title, speaker name, event
+date/time, and host. For the full-height overlapping portrait treatment, add a transparent PNG
+at `assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example
+`assets/speaker-cutouts/49-2.png`. When no cutout exists, the template falls back to the talk's
+regular `image` value.
+
 ### Generate full social bundle
 
 Render meetup image, one speaker card per talk, and LinkedIn draft copy:

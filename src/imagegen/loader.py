@@ -12,6 +12,7 @@ from .config import Event, Template
 EVENTS_URL = "https://raw.githubusercontent.com/CloudNativeLinz/cloudnativelinz.github.io/refs/heads/main/_data/events.yml"
 SPEAKER_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".avif")
 SPEAKER_IMAGES_DIR = Path("assets/speaker-images")
+SPEAKER_CUTOUTS_DIR = Path("assets/speaker-cutouts")
 
 
 def _safe_yaml_load(path: Path) -> Any:
@@ -40,6 +41,13 @@ def _find_local_speaker_image(event_id: int, talk_index: int) -> str | None:
         candidate = directory / f"{event_id}-{talk_index}{extension}"
         if candidate.exists() and candidate.is_file():
             return f"/{candidate.as_posix()}"
+    return None
+
+
+def _find_local_speaker_cutout(event_id: int, talk_index: int) -> str | None:
+    candidate = SPEAKER_CUTOUTS_DIR / f"{event_id}-{talk_index}.png"
+    if candidate.exists() and candidate.is_file():
+        return f"/{candidate.as_posix()}"
     return None
 
 
@@ -97,6 +105,10 @@ def _apply_speaker_image_fallbacks(raw_events: list[dict[str, Any]]) -> list[dic
         for index, talk in enumerate(talks, start=1):
             if not isinstance(talk, dict):
                 continue
+
+            cutout = _find_local_speaker_cutout(event_id, index)
+            if cutout is not None:
+                talk["cutout"] = cutout
 
             image = str(talk.get("image") or "").strip()
             fallback = _find_local_speaker_image(event_id, index)

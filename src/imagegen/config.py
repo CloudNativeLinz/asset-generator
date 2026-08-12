@@ -11,6 +11,7 @@ class Talk(BaseModel):
     title: str = ""
     speaker: str = ""
     image: str | HttpUrl | None = None
+    cutout: str | None = None
     social: str | HttpUrl | None = None
 
 
