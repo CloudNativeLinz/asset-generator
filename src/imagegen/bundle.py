@@ -12,8 +12,8 @@ from .config import (
     ImageBundle,
     SlideDeck,
 )
-from .loader import load_template
 from .images import generate_speaker_cutout
+from .loader import load_template
 from .renderer import render_event
 from .slides import generate_slide_deck
 from .social import generate_social_bundle
