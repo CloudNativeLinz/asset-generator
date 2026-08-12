@@ -99,33 +99,30 @@ def generate_speaker_cutout(source: str, destination: Path, cache_dir: Path) -> 
     rgb = image.convert("RGB")
     width, height = rgb.size
     pixels = rgb.load()
-    quantization = 16
-    border_colors: set[tuple[int, int, int]] = set()
-
-    for x in range(width):
-        for y in (0, height - 1):
-            red, green, blue = pixels[x, y]
-            border_colors.add((red // quantization, green // quantization, blue // quantization))
-    for y in range(height):
-        for x in (0, width - 1):
-            red, green, blue = pixels[x, y]
-            border_colors.add((red // quantization, green // quantization, blue // quantization))
-
-    background_colors: set[tuple[int, int, int]] = set()
-    for red, green, blue in border_colors:
-        for red_offset in range(-2, 3):
-            for green_offset in range(-2, 3):
-                for blue_offset in range(-2, 3):
-                    candidate = (red + red_offset, green + green_offset, blue + blue_offset)
-                    if all(0 <= channel <= 15 for channel in candidate):
-                        background_colors.add(candidate)
+    corner_size = max(2, min(width, height) // 20)
+    corner_boxes = (
+        (0, 0, corner_size, corner_size),
+        (width - corner_size, 0, width, corner_size),
+        (0, height - corner_size, corner_size, height),
+        (width - corner_size, height - corner_size, width, height),
+    )
+    background_colors: list[tuple[int, int, int]] = []
+    for left, top, right, bottom in corner_boxes:
+        samples = [pixels[x, y] for y in range(top, bottom) for x in range(left, right)]
+        background_colors.append(
+            tuple(sorted(sample[channel] for sample in samples)[len(samples) // 2] for channel in range(3))
+        )
 
     candidate_background = bytearray(width * height)
+    maximum_color_distance = 42**2
     for y in range(height):
         for x in range(width):
             red, green, blue = pixels[x, y]
-            quantized = (red // quantization, green // quantization, blue // quantization)
-            if quantized in background_colors:
+            color_distance = min(
+                (red - bg_red) ** 2 + (green - bg_green) ** 2 + (blue - bg_blue) ** 2
+                for bg_red, bg_green, bg_blue in background_colors
+            )
+            if color_distance <= maximum_color_distance:
                 candidate_background[y * width + x] = 1
 
     background = bytearray(width * height)
@@ -162,6 +159,13 @@ def generate_speaker_cutout(source: str, destination: Path, cache_dir: Path) -> 
                 alpha_pixels[x, y] = 0
 
     alpha = alpha.filter(ImageFilter.GaussianBlur(0.8))
+    histogram = alpha.histogram()
+    pixel_count = width * height
+    transparent_ratio = sum(histogram[:16]) / pixel_count
+    opaque_ratio = sum(histogram[240:]) / pixel_count
+    if transparent_ratio < 0.05 or opaque_ratio < 0.05:
+        return None
+
     cutout = image.copy()
     cutout.putalpha(alpha)
     destination.parent.mkdir(parents=True, exist_ok=True)

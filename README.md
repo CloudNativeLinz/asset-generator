@@ -107,6 +107,47 @@ The studio supports:
 - existing bundle loading and image preview/download
 - persistent CTA, image width, and image format settings
 
+## Azure Container Apps
+
+The included `Dockerfile` runs the preview studio on port 8000. Azure Container Apps can build it
+remotely, so a local Docker daemon is not required.
+
+Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli), sign in, and deploy:
+
+```bash
+az login
+az extension add --name containerapp --upgrade
+make azure-deploy \
+	AZURE_APP=cloudnative-asset-generator \
+	AZURE_RESOURCE_GROUP=rg-cloudnative-asset-generator \
+	AZURE_LOCATION=swedencentral
+```
+
+`az containerapp up` creates or reuses the resource group, Container Apps environment, registry,
+and app, then prints the public URL. Run the same target after code or data changes to deploy a new
+revision.
+
+Generated files and studio settings live in the container's local `artifacts/` directory. The
+deployment is limited to one replica to keep that local state consistent, but the files do not
+survive a replacement revision. Use an Azure Files volume before relying on the studio for durable
+generated assets. Azure OpenAI variables can be configured after deployment without storing secrets
+in the image:
+
+```bash
+az containerapp secret set \
+	--name cloudnative-asset-generator \
+	--resource-group rg-cloudnative-asset-generator \
+	--secrets azure-openai-api-key='<api-key>'
+
+az containerapp update \
+	--name cloudnative-asset-generator \
+	--resource-group rg-cloudnative-asset-generator \
+	--set-env-vars \
+		AZURE_OPENAI_ENDPOINT='https://<resource>.openai.azure.com' \
+		AZURE_OPENAI_DEPLOYMENT='<deployment-name>' \
+		AZURE_OPENAI_API_KEY=secretref:azure-openai-api-key
+```
+
 ## Azure OpenAI
 
 Copy the relevant values from `env.sample` into your environment:

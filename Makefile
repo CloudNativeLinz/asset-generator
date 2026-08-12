@@ -13,10 +13,13 @@ FPS ?= 12
 MEETUP_TEMPLATE ?= assets/templates/meetup.yaml
 SPEAKER_TEMPLATE ?= assets/templates/speaker.yaml
 ANIMATIONS ?=
+AZURE_APP ?= cloudnative-asset-generator
+AZURE_RESOURCE_GROUP ?= rg-cloudnative-asset-generator
+AZURE_LOCATION ?= swedencentral
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-slides generate-animations run preview clean
+.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-slides generate-animations run preview azure-deploy clean
 
 help:
 	@echo "Available targets:"
@@ -33,6 +36,7 @@ help:
 	@echo "  generate-slides     Generate a slide deck PDF (requires EVENT_ID)"
 	@echo "  generate-animations Generate animated clips (requires EVENT_ID)"
 	@echo "  run           Start local preview web app"
+	@echo "  azure-deploy  Build and deploy the preview app to Azure Container Apps"
 	@echo "  clean         Remove caches and generated artifacts"
 	@echo ""
 	@echo "Common overrides:"
@@ -40,6 +44,7 @@ help:
 	@echo "  make generate-all EVENTS_FILE=_data/sample-events.yml"
 	@echo "  make generate-bundle EVENT_ID=44 ANIMATIONS='speaker-spotlight event-teaser'"
 	@echo "  make run EVENTS_FILE=_data/sample-events.yml EVENT_ID=52 PORT=8000"
+	@echo "  make azure-deploy AZURE_APP=cloudnative-asset-generator AZURE_RESOURCE_GROUP=rg-cloudnative-asset-generator AZURE_LOCATION=swedencentral"
 
 install:
 	$(PIP) install --break-system-packages -e .
@@ -97,6 +102,10 @@ run:
 	imagegen preview --template $(TEMPLATE) --file $(EVENTS_FILE) $(if $(EVENT_ID),--id $(EVENT_ID),) --host $(HOST) --port $(PORT)
 
 preview: run
+
+azure-deploy:
+	@command -v az >/dev/null 2>&1 || { echo "Azure CLI is required: https://aka.ms/installazureclideb"; exit 1; }
+	az containerapp up --name $(AZURE_APP) --resource-group $(AZURE_RESOURCE_GROUP) --location $(AZURE_LOCATION) --source . --ingress external --target-port 8000 --min-replicas 1 --max-replicas 1
 
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .cache

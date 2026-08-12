@@ -180,7 +180,12 @@ def _animations_snapshot(event_dir: Path) -> list[dict]:
 def create_app(
     template_path: str, events_file: str, initial_event_id: int | None = None
 ) -> FastAPI:
-    app = FastAPI(title="imagegen social studio")
+    app = FastAPI(
+        title="imagegen social studio",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
     artifacts_dir = Path("artifacts")
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     settings_file = artifacts_dir / "studio-settings.json"
