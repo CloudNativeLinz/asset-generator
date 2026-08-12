@@ -21,7 +21,9 @@ DEFAULT_FRAMES = 24
 DEFAULT_FPS = 12
 
 
-def _render_frame(template_path: str, event: Event, width: int | None, extra_context: dict | None = None) -> Image.Image:
+def _render_frame(
+    template_path: str, event: Event, width: int | None, extra_context: dict | None = None
+) -> Image.Image:
     template = load_template(template_path)
     rendered = render_event(
         template=template,
@@ -110,16 +112,24 @@ def _export_clip(
     return AnimationClip(name=name, mp4=mp4_path, gif=gif_path)
 
 
-def _speaker_spotlight(event: Event, event_dir: Path, width: int | None, fps: int, prefer_mp4: bool) -> list[AnimationClip]:
+def _speaker_spotlight(
+    event: Event, event_dir: Path, width: int | None, fps: int, prefer_mp4: bool
+) -> list[AnimationClip]:
     clips: list[AnimationClip] = []
     for index in range(len(event.talks)):
         base = _render_frame(SPEAKER_SLIDE_TEMPLATE, event, width, {"talk_index": index})
         frames = _ken_burns_frames(base)
-        clips.append(_export_clip(frames, event_dir, f"speaker-spotlight-{index + 1}", fps=fps, prefer_mp4=prefer_mp4))
+        clips.append(
+            _export_clip(
+                frames, event_dir, f"speaker-spotlight-{index + 1}", fps=fps, prefer_mp4=prefer_mp4
+            )
+        )
     return clips
 
 
-def _event_teaser(event: Event, event_dir: Path, width: int | None, fps: int, prefer_mp4: bool) -> list[AnimationClip]:
+def _event_teaser(
+    event: Event, event_dir: Path, width: int | None, fps: int, prefer_mp4: bool
+) -> list[AnimationClip]:
     frames: list[Image.Image] = []
     for template_path in TEASER_SLIDE_TEMPLATES:
         base = _render_frame(template_path, event, width)

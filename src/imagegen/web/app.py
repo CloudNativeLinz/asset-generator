@@ -82,7 +82,9 @@ def _load_settings(path: Path) -> StudioSettings:
 
 def _save_settings(path: Path, settings: StudioSettings) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(settings.model_dump(), ensure_ascii=False, indent=2), encoding="utf-8")
+    path.write_text(
+        json.dumps(settings.model_dump(), ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
 
 def _settings_cta_defaults(settings: StudioSettings) -> CTAVariants:
@@ -175,7 +177,9 @@ def _animations_snapshot(event_dir: Path) -> list[dict]:
     return clips
 
 
-def create_app(template_path: str, events_file: str, initial_event_id: int | None = None) -> FastAPI:
+def create_app(
+    template_path: str, events_file: str, initial_event_id: int | None = None
+) -> FastAPI:
     app = FastAPI(title="imagegen social studio")
     artifacts_dir = Path("artifacts")
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -234,7 +238,9 @@ def create_app(template_path: str, events_file: str, initial_event_id: int | Non
         return JSONResponse(event.model_dump())
 
     @app.get("/api/bundle/{event_id}")
-    async def bundle_snapshot_api(event_id: int, out: str = Query(default="artifacts")) -> JSONResponse:
+    async def bundle_snapshot_api(
+        event_id: int, out: str = Query(default="artifacts")
+    ) -> JSONResponse:
         return JSONResponse(_bundle_snapshot(event_id, out_dir=out))
 
     @app.get("/render")
@@ -350,7 +356,9 @@ def create_app(template_path: str, events_file: str, initial_event_id: int | Non
         event_dir = Path(payload.out) / str(payload.id)
         event_dir.mkdir(parents=True, exist_ok=True)
         destination = event_dir / "social-edited.json"
-        destination.write_text(json.dumps(payload.social, ensure_ascii=False, indent=2), encoding="utf-8")
+        destination.write_text(
+            json.dumps(payload.social, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         return JSONResponse(
             {
                 "saved": True,
@@ -368,14 +376,23 @@ def create_app(template_path: str, events_file: str, initial_event_id: int | Non
 
         kind = payload.kind.strip().lower()
         if kind == "meetup":
-            return JSONResponse({"kind": "meetup", "draft": social.meetup.model_dump(by_alias=True)})
+            return JSONResponse(
+                {"kind": "meetup", "draft": social.meetup.model_dump(by_alias=True)}
+            )
 
         if kind == "talk":
             if payload.talk_index is None:
-                raise HTTPException(status_code=400, detail="talk_index is required for talk regeneration")
+                raise HTTPException(
+                    status_code=400, detail="talk_index is required for talk regeneration"
+                )
             if payload.talk_index < 0 or payload.talk_index >= len(social.talks):
                 raise HTTPException(status_code=404, detail="talk_index out of range")
-            return JSONResponse({"kind": "talk", "draft": social.talks[payload.talk_index].model_dump(by_alias=True)})
+            return JSONResponse(
+                {
+                    "kind": "talk",
+                    "draft": social.talks[payload.talk_index].model_dump(by_alias=True),
+                }
+            )
 
         raise HTTPException(status_code=400, detail="kind must be meetup or talk")
 

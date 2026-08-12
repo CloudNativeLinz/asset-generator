@@ -9,7 +9,14 @@ from PIL import Image, ImageDraw
 
 from .config import Event, ImageElement, Template, TextElement
 from .images import apply_shape, fit_image, load_source_image
-from .text import fit_text, line_height, load_font, wrap_text
+from .text import (
+    draw_text_with_emoji,
+    fit_text,
+    line_height,
+    load_font,
+    resolve_font_path,
+    wrap_text,
+)
 
 
 def _slug(value: Any) -> str:
@@ -56,6 +63,20 @@ def _render_template_string(value: str, context: dict[str, Any], env: Environmen
     return env.from_string(value).render(**context).strip()
 
 
+def _event_context(event: Event) -> dict[str, Any]:
+    context = event.model_dump()
+    talks = context.get("talks")
+    if not isinstance(talks, list):
+        talks = []
+
+    padded_talks = [dict(talk) if isinstance(talk, dict) else {} for talk in talks]
+    while len(padded_talks) < 2:
+        padded_talks.append({"title": "", "speaker": "", "image": "", "social": None})
+
+    context["talks"] = padded_talks
+    return context
+
+
 def _draw_text_element(
     canvas: Image.Image,
     draw: ImageDraw.ImageDraw,
@@ -67,8 +88,11 @@ def _draw_text_element(
 ) -> None:
     font_path = element.font or default_font
     if not font_path:
-        raise ValueError(f"Element {element.id} requires a font in template.defaults.font or element.font")
+        raise ValueError(
+            f"Element {element.id} requires a font in template.defaults.font or element.font"
+        )
 
+    font_path = resolve_font_path(font_path, text)
     font_size = element.size or default_size
     color = element.color or default_color
 
@@ -109,7 +133,19 @@ def _draw_text_element(
             x = element.box.x
 
         y = start_y + int(index * lh * element.line_spacing)
-        draw.text((x, y), line, fill=color, font=font)
+        if any(ord(ch) > 127 for ch in line):
+            draw_text_with_emoji(
+                canvas=canvas,
+                draw=draw,
+                x=x,
+                y=y,
+                text=line,
+                font=font,
+                fill=color,
+                cache_dir=Path(".cache/images"),
+            )
+        else:
+            draw.text((x, y), line, fill=color, font=font)
 
 
 def _draw_image_element(
@@ -148,7 +184,7 @@ def render_event(
     canvas.alpha_composite(background)
 
     env = _jinja_env()
-    context = {"event": event.model_dump()}
+    context = {"event": _event_context(event)}
     if extra_context:
         context.update(extra_context)
     draw = ImageDraw.Draw(canvas)
@@ -171,7 +207,9 @@ def render_event(
             )
         else:
             rendered_source = _render_template_string(element.source, context, env)
-            _draw_image_element(canvas=canvas, element=element, source=rendered_source, cache_dir=Path(cache_dir))
+            _draw_image_element(
+                canvas=canvas, element=element, source=rendered_source, cache_dir=Path(cache_dir)
+            )
 
     if width and width > 0 and width != canvas.width:
         height = round(width * canvas.height / canvas.width)

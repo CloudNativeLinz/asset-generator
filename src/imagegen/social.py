@@ -58,7 +58,9 @@ def _default_cta() -> CTAVariants:
     )
 
 
-def _apply_cta_defaults(bundle: SocialContentBundle, cta_defaults: CTAVariants | None) -> SocialContentBundle:
+def _apply_cta_defaults(
+    bundle: SocialContentBundle, cta_defaults: CTAVariants | None
+) -> SocialContentBundle:
     if cta_defaults is None:
         return bundle
 
@@ -70,12 +72,12 @@ def _apply_cta_defaults(bundle: SocialContentBundle, cta_defaults: CTAVariants |
 
 def _hashtags(event: Event) -> str:
     host = str(event.host or "Cloud Native Linz").replace(" ", "")
-    return f"#CloudNative #Meetup #{host} #LinkedIn"
+    return f"#CloudNativeLinz #Meetup #{host}"
 
 
 def _short_hashtags(event: Event) -> str:
     host = str(event.host or "Cloud Native Linz").replace(" ", "")
-    return f"#CloudNative #{host}"
+    return f"#CloudNativeLinz #{host}"
 
 
 def _short_form(post: str, event: Event) -> str:
@@ -152,7 +154,7 @@ def _rules_talk_post(event: Event, talk_index: int) -> TalkPostDraft:
     speaker = (talk.speaker or "Guest speaker").strip()
 
     post = (
-        f"Speaker spotlight for {dt}: {speaker} will present \"{title}\" at our meetup. "
+        f'Speaker spotlight for {dt}: {speaker} will present "{title}" at our meetup. '
         f"If this topic is on your radar, this is a great session to attend. {_hashtags(event)}"
     )
 
@@ -237,13 +239,15 @@ def _llm_bundle(event: Event, settings: AzureOpenAISettings) -> SocialContentBun
     response = azure_chat_completion(settings, system_prompt=system_prompt, user_prompt=user_prompt)
     payload = _extract_json(response)
 
-    model = SocialContentBundle.model_validate({
-        "platform": "linkedin",
-        "tone": "professional and friendly",
-        "generated_with": "azure-openai",
-        "meetup": payload["meetup"],
-        "talks": payload.get("talks", []),
-    })
+    model = SocialContentBundle.model_validate(
+        {
+            "platform": "linkedin",
+            "tone": "professional and friendly",
+            "generated_with": "azure-openai",
+            "meetup": payload["meetup"],
+            "talks": payload.get("talks", []),
+        }
+    )
 
     return model
 
@@ -259,7 +263,11 @@ def _ensure_derived(bundle: SocialContentBundle, event: Event) -> SocialContentB
         meetup = meetup.model_copy(update=meetup_updates)
 
     talks = [
-        talk if talk.short_form else talk.model_copy(update={"short_form": _short_form(talk.post, event)})
+        (
+            talk
+            if talk.short_form
+            else talk.model_copy(update={"short_form": _short_form(talk.post, event)})
+        )
         for talk in bundle.talks
     ]
 

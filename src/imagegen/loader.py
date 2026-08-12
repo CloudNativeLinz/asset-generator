@@ -119,6 +119,20 @@ def _apply_speaker_image_fallbacks(raw_events: list[dict[str, Any]]) -> list[dic
     return raw_events
 
 
+def _normalize_null_fields(raw_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for event in raw_events:
+        if not isinstance(event, dict):
+            continue
+
+        item = dict(event)
+        if item.get("host") is None:
+            item["host"] = ""
+        normalized.append(item)
+
+    return normalized
+
+
 def load_events(events_file: str = "_data/events.yml") -> list[Event]:
     path = Path(events_file)
     raw: list[dict[str, Any]]
@@ -132,7 +146,7 @@ def load_events(events_file: str = "_data/events.yml") -> list[Event]:
     if not raw:
         raw = _fetch_remote_events()
 
-    normalized = _apply_speaker_image_fallbacks(raw)
+    normalized = _normalize_null_fields(_apply_speaker_image_fallbacks(raw))
     events = [Event.model_validate(item) for item in normalized]
     return sorted(events, key=lambda event: event.id, reverse=True)
 

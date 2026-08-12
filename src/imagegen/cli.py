@@ -27,7 +27,9 @@ def _save_rendered_image(
 ) -> Path:
     template = load_template(template_path)
     event = find_event(load_events(events_file), event_id)
-    rendered = render_event(template=template, event=event, width=width, output_format=output_format)
+    rendered = render_event(
+        template=template, event=event, width=width, output_format=output_format
+    )
 
     ext = output_format.lower()
     if width and width > 0:
@@ -72,7 +74,9 @@ def generate(
 
 
 @app.command("list-events")
-def list_events(file: str = typer.Option("_data/events.yml", "--file", help="Path to events YAML")) -> None:
+def list_events(
+    file: str = typer.Option("_data/events.yml", "--file", help="Path to events YAML")
+) -> None:
     events = load_events(file)
     for event in events:
         typer.echo(f"{event.id}\t{event.date}\t{event.title}")
@@ -107,7 +111,10 @@ def generate_bundle(
     no_slides: bool = typer.Option(False, "--no-slides", help="Skip slide deck generation"),
     animations: Annotated[
         list[str] | None,
-        typer.Option("--animation", help=f"Animation preset to include ({ANIMATION_PRESETS_TEXT}); repeatable"),
+        typer.Option(
+            "--animation",
+            help=f"Animation preset to include ({ANIMATION_PRESETS_TEXT}); repeatable",
+        ),
     ] = None,
 ) -> None:
     fmt = format.lower()

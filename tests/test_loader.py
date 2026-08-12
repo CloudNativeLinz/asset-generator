@@ -4,7 +4,9 @@ from types import SimpleNamespace
 from imagegen.loader import load_events
 
 
-def test_load_events_prefers_local_speaker_image_for_remote_url(tmp_path: Path, monkeypatch) -> None:
+def test_load_events_prefers_local_speaker_image_for_remote_url(
+    tmp_path: Path, monkeypatch
+) -> None:
     events_file = tmp_path / "events.yml"
     events_file.write_text(
         """
@@ -33,10 +35,12 @@ def test_load_events_prefers_local_speaker_image_for_remote_url(tmp_path: Path, 
     assert events[0].talks[1].image == "/assets/speaker-images/46-2.jpg"
 
 
-def test_load_events_downloads_remote_speaker_image_when_missing(tmp_path: Path, monkeypatch) -> None:
-  events_file = tmp_path / "events.yml"
-  events_file.write_text(
-    """
+def test_load_events_downloads_remote_speaker_image_when_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    events_file = tmp_path / "events.yml"
+    events_file.write_text(
+        """
 - id: 99
   title: "Event"
   talks:
@@ -44,22 +48,40 @@ def test_load_events_downloads_remote_speaker_image_when_missing(tmp_path: Path,
     speaker: "Speaker 1"
     image: "https://example.com/profile"
 """.strip(),
-    encoding="utf-8",
-  )
-
-  def fake_get(url: str, timeout: int):
-    assert url == "https://example.com/profile"
-    assert timeout == 20
-    return SimpleNamespace(
-      status_code=200,
-      content=b"fake-image-bytes",
-      headers={"content-type": "image/jpeg"},
+        encoding="utf-8",
     )
 
-  monkeypatch.chdir(tmp_path)
-  monkeypatch.setattr("imagegen.loader.requests.get", fake_get)
+    def fake_get(url: str, timeout: int):
+        assert url == "https://example.com/profile"
+        assert timeout == 20
+        return SimpleNamespace(
+            status_code=200,
+            content=b"fake-image-bytes",
+            headers={"content-type": "image/jpeg"},
+        )
 
-  events = load_events(str(events_file))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("imagegen.loader.requests.get", fake_get)
 
-  assert events[0].talks[0].image == "/assets/speaker-images/99-1.jpg"
-  assert (tmp_path / "assets" / "speaker-images" / "99-1.jpg").exists()
+    events = load_events(str(events_file))
+
+    assert events[0].talks[0].image == "/assets/speaker-images/99-1.jpg"
+    assert (tmp_path / "assets" / "speaker-images" / "99-1.jpg").exists()
+
+
+def test_load_events_accepts_null_host_values(tmp_path: Path) -> None:
+    events_file = tmp_path / "events.yml"
+    events_file.write_text(
+        """
+- id: 7
+  title: "Event with no host"
+  host: null
+  talks: []
+""".strip(),
+        encoding="utf-8",
+    )
+
+    events = load_events(str(events_file))
+
+    assert len(events) == 1
+    assert events[0].host == ""

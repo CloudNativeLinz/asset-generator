@@ -28,7 +28,9 @@ def _extract_text_from_message(content: Any) -> str:
     return ""
 
 
-def azure_chat_completion(settings: AzureOpenAISettings, *, system_prompt: str, user_prompt: str) -> str:
+def azure_chat_completion(
+    settings: AzureOpenAISettings, *, system_prompt: str, user_prompt: str
+) -> str:
     endpoint = settings.endpoint.rstrip("/")
     url = (
         f"{endpoint}/openai/deployments/{settings.deployment}/chat/completions"

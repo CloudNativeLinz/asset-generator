@@ -47,7 +47,9 @@ def generate_event_bundle(
 
     event_dir = Path(output_dir) / str(event.id)
 
-    meetup_image = render_event(template=meetup_template, event=event, width=width, output_format=fmt)
+    meetup_image = render_event(
+        template=meetup_template, event=event, width=width, output_format=fmt
+    )
     meetup_destination = event_dir / f"meetup.{fmt}"
     meetup_path = _save_image(meetup_image, meetup_destination, fmt)
 
