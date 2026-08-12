@@ -64,6 +64,11 @@ def fit_image(image: Image.Image, width: int, height: int, mode: str) -> Image.I
         return image.resize((width, height), resample=Image.Resampling.LANCZOS)
 
     if mode in {"contain", "contain-bottom"}:
+        if mode == "contain-bottom" and image.mode == "RGBA":
+            alpha_bounds = image.getchannel("A").getbbox()
+            if alpha_bounds is not None:
+                image = image.crop(alpha_bounds)
+
         canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         fitted = ImageOps.contain(image, (width, height), method=Image.Resampling.LANCZOS)
         x = (width - fitted.width) // 2
@@ -112,7 +117,6 @@ def generate_speaker_cutout(source: str, destination: Path, cache_dir: Path) -> 
         background_colors.append(
             tuple(sorted(sample[channel] for sample in samples)[len(samples) // 2] for channel in range(3))
         )
-
     candidate_background = bytearray(width * height)
     maximum_color_distance = 42**2
     for y in range(height):

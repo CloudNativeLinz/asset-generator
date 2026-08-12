@@ -74,7 +74,10 @@ def generate_event_bundle(
             event=event,
             width=width,
             output_format=fmt,
-            extra_context={"talk_index": index, "speaker_variant": "cutout"},
+            extra_context={
+                "talk_index": index,
+                "speaker_variant": "cutout" if talk.cutout else "portrait",
+            },
         )
         cutout_destination = event_dir / f"speaker-{index + 1}-cutout.{fmt}"
         speaker_paths.append(_save_image(cutout_image, cutout_destination, fmt))
