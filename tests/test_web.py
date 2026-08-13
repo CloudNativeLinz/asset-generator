@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from jinja2 import Environment, FileSystemLoader
+
 from imagegen.web.app import create_app
 
 
@@ -16,3 +18,18 @@ def test_studio_hides_api_discovery_but_registers_ui() -> None:
     assert "/docs" not in route_paths
     assert "/redoc" not in route_paths
     assert "/openapi.json" not in route_paths
+
+
+def test_index_serializes_template_paths_for_javascript() -> None:
+    templates_dir = Path("src/imagegen/web/templates")
+    environment = Environment(loader=FileSystemLoader(templates_dir), autoescape=True)
+
+    rendered = environment.get_template("index.html").render(
+        events=[],
+        selected=0,
+        template='assets/templates/"quoted".yaml',
+        speaker_template="assets/templates/speaker.yaml",
+    )
+
+    assert 'template: "assets/templates/\\"quoted\\".yaml"' in rendered
+    assert "dom.eventMeta.innerHTML" not in rendered

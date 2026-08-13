@@ -531,7 +531,7 @@
 
     <script>
       const state = {
-        eventId: Number({{ selected or 0 }}),
+        eventId: Number({{ (selected or 0) | tojson }}),
         settings: null,
         social: null,
         snapshot: null,
@@ -601,8 +601,8 @@
         const settings = state.settings || {};
         const body = {
           id: Number(dom.eventId.value),
-          template: "{{ template }}",
-          speaker_template: "{{ speaker_template }}",
+          template: {{ template | tojson }},
+          speaker_template: {{ speaker_template | tojson }},
           format: settings.image_format || "jpg",
           out: "artifacts",
           include_social: includeSocial,
@@ -622,14 +622,25 @@
         const eventId = Number(dom.eventId.value);
         state.eventId = eventId;
         const event = await apiGet(`/api/events/${eventId}`);
-        dom.eventMeta.innerHTML = [
-          `<p><strong>${event.title || "Untitled"}</strong></p>`,
-          `<p>Date: ${event.date || "n/a"}</p>`,
-          `<p>Host: ${event.host || "n/a"}</p>`,
-          `<p>Talks: ${(event.talks || []).length}</p>`,
-        ].join("");
+        dom.eventMeta.replaceChildren();
 
-        dom.talkList.innerHTML = "";
+        const title = document.createElement("p");
+        const titleText = document.createElement("strong");
+        titleText.textContent = event.title || "Untitled";
+        title.appendChild(titleText);
+        dom.eventMeta.appendChild(title);
+
+        [
+          ["Date", event.date || "n/a"],
+          ["Host", event.host || "n/a"],
+          ["Talks", String((event.talks || []).length)],
+        ].forEach(([label, value]) => {
+          const item = document.createElement("p");
+          item.textContent = `${label}: ${value}`;
+          dom.eventMeta.appendChild(item);
+        });
+
+        dom.talkList.replaceChildren();
         (event.talks || []).forEach((talk, index) => {
           const item = document.createElement("div");
           item.className = "talk-pill";
