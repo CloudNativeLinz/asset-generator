@@ -8,6 +8,12 @@ from imagegen.renderer import render_event
 from imagegen.text import resolve_font_path
 
 
+def test_image_templates_do_not_force_uppercase() -> None:
+    for template_path in Path("assets/templates").glob("*.yaml"):
+        template_source = template_path.read_text(encoding="utf-8")
+        assert "| upper" not in template_source, f"{template_path} forces uppercase text"
+
+
 def test_render_sample_event(tmp_path: Path) -> None:
     template = load_template("assets/templates/meetup.yaml")
     event = find_event(load_events("_data/sample-events.yml"), 32)

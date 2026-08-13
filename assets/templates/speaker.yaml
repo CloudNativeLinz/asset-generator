@@ -38,7 +38,7 @@ elements:
 
   - id: talk_title
     type: text
-    value: "{{ event.talks[talk_index].title | default('Talk title coming soon') | upper }}"
+    value: "{{ event.talks[talk_index].title | default('Talk title coming soon') }}"
     box: { x: 315, y: 803, w: 570, h: 182 }
     font: assets/fonts/DejaVuSans-Bold.ttf
     size: 55

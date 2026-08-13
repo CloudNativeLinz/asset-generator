@@ -23,7 +23,7 @@ elements:
 
   - id: talk_title
     type: text
-    value: "{{ diamond_title | default('Talk title coming soon') | upper }}"
+    value: "{{ diamond_title | default('Talk title coming soon') }}"
     box: { x: 180, y: 803, w: 840, h: 182 }
     font: assets/fonts/DejaVuSans-Bold.ttf
     size: 55

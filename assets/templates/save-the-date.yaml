@@ -23,7 +23,7 @@ elements:
 
   - id: date
     type: text
-    value: "{{ event.date | date('%B %d, %Y') | upper }}"
+    value: "{{ event.date | date('%B %d, %Y') }}"
     box: { x: 267, y: 803, w: 666, h: 93 }
     font: assets/fonts/DejaVuSans-Bold.ttf
     size: 64
@@ -40,7 +40,7 @@ elements:
 
   - id: host
     type: text
-    value: "{{ event.host | upper }}"
+    value: "{{ event.host }}"
     box: { x: 392, y: 899, w: 416, h: 86 }
     font: assets/fonts/DejaVuSans-Bold.ttf
     size: 64
