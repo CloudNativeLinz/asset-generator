@@ -142,7 +142,8 @@ def test_render_speaking_at_template_bottom_aligns_square_cutout(monkeypatch) ->
 def test_render_speaking_at_template_with_regular_portrait(monkeypatch) -> None:
     portrait = Image.new("RGBA", (400, 400), (0, 0, 102, 255))
     monkeypatch.setattr(
-        "imagegen.renderer.load_source_image", lambda source, cache_dir: portrait if source else None
+        "imagegen.renderer.load_source_image",
+        lambda source, cache_dir: portrait if source else None,
     )
     monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
 
@@ -171,3 +172,58 @@ def test_render_speaking_at_template_with_regular_portrait(monkeypatch) -> None:
 
     assert rendered.getpixel((650, 360))[:3] == (0, 0, 102)
     assert rendered.getpixel((500, 200))[:3] == (255, 255, 255)
+
+
+def test_render_single_speaker_diamond_template(monkeypatch) -> None:
+    portrait = Image.new("RGBA", (400, 400), (0, 0, 102, 255))
+    monkeypatch.setattr(
+        "imagegen.renderer.load_source_image",
+        lambda source, cache_dir: portrait if source else None,
+    )
+    monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
+    template = load_template("assets/templates/speaker-diamond-1.yaml")
+    event = Event(id=104, title="Event", date="2026-04-21", talks=[])
+
+    rendered = render_event(
+        template=template,
+        event=event,
+        output_format="png",
+        extra_context={
+            "diamond_title": "A talk",
+            "diamond_speaker_names": "A speaker",
+            "diamond_images": ["speaker.jpg"],
+        },
+    )
+
+    assert rendered.getpixel((700, 350))[:3] == (0, 0, 102)
+    assert rendered.getpixel((500, 350))[:3] != (0, 0, 102)
+    assert rendered.getpixel((160, 803))[:3] == (0, 0, 0)
+
+
+def test_render_two_speaker_diamond_template(monkeypatch) -> None:
+    portraits = {
+        "first.jpg": Image.new("RGBA", (400, 400), (102, 0, 0, 255)),
+        "second.jpg": Image.new("RGBA", (400, 400), (0, 0, 102, 255)),
+    }
+    monkeypatch.setattr(
+        "imagegen.renderer.load_source_image",
+        lambda source, cache_dir: portraits.get(source),
+    )
+    monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
+    template = load_template("assets/templates/speaker-diamond-2.yaml")
+    event = Event(id=105, title="Event", date="2026-04-21", talks=[])
+
+    rendered = render_event(
+        template=template,
+        event=event,
+        output_format="png",
+        extra_context={
+            "diamond_title": "A shared talk",
+            "diamond_speaker_names": "First & Second",
+            "diamond_images": ["first.jpg", "second.jpg"],
+        },
+    )
+
+    assert rendered.getpixel((650, 350))[:3] == (102, 0, 0)
+    assert rendered.getpixel((930, 350))[:3] == (0, 0, 102)
+    assert rendered.getpixel((870, 350))[:3] != (102, 0, 0)

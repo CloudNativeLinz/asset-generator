@@ -88,6 +88,40 @@ def apply_shape(image: Image.Image, shape: str, corner_radius: int = 24) -> Imag
 
     if shape == "circle":
         draw.ellipse((0, 0, image.width, image.height), fill=255)
+    elif shape in {"parallelogram", "parallelogram-pair"}:
+        slant = round(image.height * 0.265)
+        if shape == "parallelogram":
+            draw.polygon(
+                (
+                    (slant, 0),
+                    (image.width, 0),
+                    (image.width - slant, image.height),
+                    (0, image.height),
+                ),
+                fill=255,
+            )
+        else:
+            gap = 12
+            panel_width = (image.width - slant - gap) // 2
+            draw.polygon(
+                (
+                    (slant, 0),
+                    (slant + panel_width, 0),
+                    (panel_width, image.height),
+                    (0, image.height),
+                ),
+                fill=255,
+            )
+            second_left = panel_width + gap
+            draw.polygon(
+                (
+                    (second_left + slant, 0),
+                    (image.width, 0),
+                    (image.width - slant, image.height),
+                    (second_left, image.height),
+                ),
+                fill=255,
+            )
     else:
         draw.rounded_rectangle((0, 0, image.width, image.height), radius=corner_radius, fill=255)
 

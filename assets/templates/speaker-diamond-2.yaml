@@ -1,0 +1,86 @@
+name: speaking-at-diamond-double
+background: assets/backgrounds/DIAMOND-TEMPLATE-2.png
+size:
+  width: 1200
+  height: 1200
+defaults:
+  font: assets/fonts/DejaVuSans.ttf
+  color: "#000000"
+  size: 28
+
+elements:
+  - id: combined_speaker_photo
+    type: image
+    source: >-
+      {% if diamond_images | length < 2 %}{{ diamond_images[0] | default('') }}{% endif %}
+    box: { x: 460, y: 337, w: 665, h: 548 }
+    shape: parallelogram-pair
+    fit: cover
+
+  - id: first_speaker_photo
+    type: image
+    source: >-
+      {% if diamond_images | length >= 2 %}{{ diamond_images[0] }}{% endif %}
+    box: { x: 460, y: 337, w: 400, h: 548 }
+    shape: parallelogram
+    fit: cover
+
+  - id: second_speaker_photo
+    type: image
+    source: >-
+      {% if diamond_images | length >= 2 %}{{ diamond_images[1] }}{% endif %}
+    box: { x: 726, y: 337, w: 399, h: 548 }
+    shape: parallelogram
+    fit: cover
+
+  - id: talk_title_background
+    type: rectangle
+    box: { x: 160, y: 803, w: 880, h: 182 }
+    color: "#000000"
+
+  - id: talk_title
+    type: text
+    value: "{{ diamond_title | default('Talk title coming soon') | upper }}"
+    box: { x: 180, y: 803, w: 840, h: 182 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 55
+    color: "#FFFFFF"
+    align: center
+    valign: middle
+    wrap: true
+    fit: shrink
+    line_spacing: 1.35
+
+  - id: speaker_name
+    type: text
+    value: "{{ diamond_speaker_names | default('Guest speakers') }}"
+    box: { x: 160, y: 1015, w: 880, h: 55 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 40
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: date_time
+    type: text
+    value: "📅  {{ event.date | date('%A, %B %d') }}{% if event.time %} | {{ event.time }}{% endif %}"
+    box: { x: 120, y: 1077, w: 960, h: 38 }
+    size: 26
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: host
+    type: text
+    value: "📍  {{ event.address | default(event.host | default(event.venue)) }}"
+    box: { x: 120, y: 1118, w: 960, h: 38 }
+    size: 26
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink

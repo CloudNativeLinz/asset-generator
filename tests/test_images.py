@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from imagegen.images import fit_image, generate_speaker_cutout
+from imagegen.images import apply_shape, fit_image, generate_speaker_cutout
 
 
 def test_fit_image_contain_bottom_anchors_visible_alpha_to_edge() -> None:
@@ -72,3 +72,25 @@ def test_generate_speaker_cutout_rejects_fully_removed_image(tmp_path: Path) -> 
 
     assert result is None
     assert not destination.exists()
+
+
+def test_apply_shape_masks_slanted_diamond_photo() -> None:
+    image = Image.new("RGBA", (585, 548), (20, 40, 80, 255))
+
+    shaped = apply_shape(image, "parallelogram")
+
+    assert shaped.getpixel((0, 0))[3] == 0
+    assert shaped.getpixel((200, 0))[3] == 255
+    assert shaped.getpixel((0, 547))[3] == 255
+    assert shaped.getpixel((584, 547))[3] == 0
+
+
+def test_apply_shape_masks_two_diamond_photo_panels() -> None:
+    image = Image.new("RGBA", (665, 548), (20, 40, 80, 255))
+
+    shaped = apply_shape(image, "parallelogram-pair")
+
+    assert shaped.getpixel((200, 0))[3] == 255
+    assert shaped.getpixel((405, 0))[3] == 0
+    assert shaped.getpixel((500, 0))[3] == 255
+    assert shaped.getpixel((260, 547))[3] == 0

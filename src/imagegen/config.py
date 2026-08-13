@@ -11,6 +11,7 @@ class Talk(BaseModel):
     title: str = ""
     speaker: str = ""
     image: str | HttpUrl | None = None
+    images: list[str | HttpUrl] = Field(default_factory=list)
     cutout: str | None = None
     social: str | HttpUrl | None = None
 
@@ -73,7 +74,7 @@ class ImageElement(BaseElement):
     type: Literal["image"] = "image"
     source: str
     fit: Literal["cover", "contain", "contain-bottom", "fill"] = "cover"
-    shape: Literal["rect", "rounded", "circle"] = "rect"
+    shape: Literal["rect", "rounded", "circle", "parallelogram", "parallelogram-pair"] = "rect"
     corner_radius: int = 24
 
 
@@ -182,6 +183,7 @@ class SocialContentBundle(BaseModel):
 
 class ImageBundle(BaseModel):
     meetup_image: str | None = None
+    meetup_diamond_image: str | None = None
     speaker_images: list[str] = Field(default_factory=list)
 
 

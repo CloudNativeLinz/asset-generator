@@ -1,0 +1,69 @@
+name: speaking-at-diamond-single
+background: assets/backgrounds/DIAMOND-TEMPLATE-1.png
+size:
+  width: 1200
+  height: 1200
+defaults:
+  font: assets/fonts/DejaVuSans.ttf
+  color: "#000000"
+  size: 28
+
+elements:
+  - id: speaker_photo
+    type: image
+    source: "{{ diamond_images[0] | default('') }}"
+    box: { x: 480, y: 337, w: 585, h: 548 }
+    shape: parallelogram
+    fit: cover
+
+  - id: talk_title_background
+    type: rectangle
+    box: { x: 160, y: 803, w: 880, h: 182 }
+    color: "#000000"
+
+  - id: talk_title
+    type: text
+    value: "{{ diamond_title | default('Talk title coming soon') | upper }}"
+    box: { x: 180, y: 803, w: 840, h: 182 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 55
+    color: "#FFFFFF"
+    align: center
+    valign: middle
+    wrap: true
+    fit: shrink
+    line_spacing: 1.35
+
+  - id: speaker_name
+    type: text
+    value: "{{ diamond_speaker_names | default('Guest speaker') }}"
+    box: { x: 160, y: 1015, w: 880, h: 55 }
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 40
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: date_time
+    type: text
+    value: "📅  {{ event.date | date('%A, %B %d') }}{% if event.time %} | {{ event.time }}{% endif %}"
+    box: { x: 120, y: 1077, w: 960, h: 38 }
+    size: 26
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink
+
+  - id: host
+    type: text
+    value: "📍  {{ event.address | default(event.host | default(event.venue)) }}"
+    box: { x: 120, y: 1118, w: 960, h: 38 }
+    size: 26
+    color: "#000000"
+    align: center
+    valign: middle
+    wrap: false
+    fit: shrink

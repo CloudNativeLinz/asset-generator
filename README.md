@@ -31,7 +31,9 @@ make generate-bundle EVENT_ID=44
 The bundle is written to `artifacts/<event-id>/` and contains:
 
 - `meetup.jpg` or `meetup.png`
-- `speaker-<n>-cutout.<format>` and `speaker-<n>-portrait.<format>`
+- `meetup-diamond.<format>`
+- `speaker-<n>-cutout.<format>`, `speaker-<n>-portrait.<format>`, and
+  `speaker-<n>-diamond.<format>`
 - `social.json` with LinkedIn meetup and talk drafts, CTA variants, post variants, and short-form copy
 - `slides/` with title, agenda, speaker, sponsor, and CTA PNGs
 - `slides.pdf`
@@ -87,6 +89,11 @@ make generate-bundle EVENT_ID=44 ANIMATIONS="speaker-spotlight event-teaser"
 Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a large cutout version and a rounded portrait fallback. Curated transparent PNGs can be placed at `assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example `assets/speaker-cutouts/49-2.png`.
 
 When no curated cutout exists, bundle generation derives a transparent candidate under `artifacts/<event-id>/cutouts/` while preserving the original image for the portrait version.
+
+Bundles also include diamond speaker cards and a diamond meetup banner. A talk with two speaker
+names separated by `&` or `and` uses the two-photo diamond layout. Supply two distinct portraits
+with the optional `images` list; otherwise the talk's combined `image` is fitted across both
+diamond panels.
 
 ## Preview Studio
 
