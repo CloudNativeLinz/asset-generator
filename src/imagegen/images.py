@@ -96,40 +96,15 @@ def apply_shape(image: Image.Image, shape: str, corner_radius: int = 24) -> Imag
     return shaped
 
 
-def generate_speaker_cutout(source: str, destination: Path, cache_dir: Path) -> str | None:
-    image = load_source_image(source, cache_dir)
-    if image is None:
-        return None
+def _color_distance(first: tuple[int, int, int], second: tuple[int, int, int]) -> int:
+    return sum((first[channel] - second[channel]) ** 2 for channel in range(3))
 
-    rgb = image.convert("RGB")
-    width, height = rgb.size
-    pixels = rgb.load()
-    corner_size = max(2, min(width, height) // 20)
-    corner_boxes = (
-        (0, 0, corner_size, corner_size),
-        (width - corner_size, 0, width, corner_size),
-        (0, height - corner_size, corner_size, height),
-        (width - corner_size, height - corner_size, width, height),
-    )
-    background_colors: list[tuple[int, int, int]] = []
-    for left, top, right, bottom in corner_boxes:
-        samples = [pixels[x, y] for y in range(top, bottom) for x in range(left, right)]
-        background_colors.append(
-            tuple(sorted(sample[channel] for sample in samples)[len(samples) // 2] for channel in range(3))
-        )
-    candidate_background = bytearray(width * height)
-    maximum_color_distance = 42**2
-    for y in range(height):
-        for x in range(width):
-            red, green, blue = pixels[x, y]
-            color_distance = min(
-                (red - bg_red) ** 2 + (green - bg_green) ** 2 + (blue - bg_blue) ** 2
-                for bg_red, bg_green, bg_blue in background_colors
-            )
-            if color_distance <= maximum_color_distance:
-                candidate_background[y * width + x] = 1
 
-    background = bytearray(width * height)
+def _fill_enclosed_foreground(alpha: Image.Image) -> Image.Image:
+    closed = alpha.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))
+    pixels = closed.load()
+    width, height = closed.size
+    exterior = bytearray(width * height)
     queue: deque[tuple[int, int]] = deque()
     for x in range(width):
         queue.extend(((x, 0), (x, height - 1)))
@@ -139,21 +114,78 @@ def generate_speaker_cutout(source: str, destination: Path, cache_dir: Path) -> 
     while queue:
         x, y = queue.popleft()
         index = y * width + x
-        if background[index] or not candidate_background[index]:
+        if exterior[index] or pixels[x, y] >= 128:
             continue
-        background[index] = 1
-        for next_x, next_y in (
-            (x - 1, y),
-            (x + 1, y),
-            (x, y - 1),
-            (x, y + 1),
-            (x - 1, y - 1),
-            (x + 1, y - 1),
-            (x - 1, y + 1),
-            (x + 1, y + 1),
-        ):
+        exterior[index] = 1
+        for next_x, next_y in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
             if 0 <= next_x < width and 0 <= next_y < height:
                 queue.append((next_x, next_y))
+
+    filled = Image.new("L", (width, height), 255)
+    filled_pixels = filled.load()
+    for y in range(height):
+        for x in range(width):
+            if exterior[y * width + x]:
+                filled_pixels[x, y] = 0
+    return filled
+
+
+def generate_speaker_cutout(source: str, destination: Path, cache_dir: Path) -> str | None:
+    image = load_source_image(source, cache_dir)
+    if image is None:
+        return None
+
+    segmentation_image = image.convert("RGB").filter(ImageFilter.GaussianBlur(1.0))
+    width, height = segmentation_image.size
+    pixels = segmentation_image.load()
+    corner_size = max(2, min(width, height) // 20)
+    corner_boxes = (
+        (0, 0, corner_size, corner_size),
+        (width - corner_size, 0, width, corner_size),
+    )
+    background_colors: list[tuple[int, int, int]] = []
+    for left, top, right, bottom in corner_boxes:
+        samples = [pixels[x, y] for y in range(top, bottom) for x in range(left, right)]
+        background_colors.append(
+            tuple(
+                sorted(sample[channel] for sample in samples)[len(samples) // 2]
+                for channel in range(3)
+            )
+        )
+
+    background = bytearray(width * height)
+    queued = bytearray(width * height)
+    queue: deque[tuple[int, int]] = deque()
+    border = (
+        [(x, 0) for x in range(width)]
+        + [(0, y) for y in range(height)]
+        + [(width - 1, y) for y in range(height)]
+    )
+    maximum_seed_distance = 70**2
+    for x, y in border:
+        pixel = pixels[x, y]
+        if (
+            min(_color_distance(pixel, color) for color in background_colors)
+            <= maximum_seed_distance
+        ):
+            queue.append((x, y))
+            queued[y * width + x] = 1
+
+    maximum_step_distance = 6**2
+    while queue:
+        x, y = queue.popleft()
+        index = y * width + x
+        background[index] = 1
+        pixel = pixels[x, y]
+        for next_x, next_y in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if 0 <= next_x < width and 0 <= next_y < height:
+                next_index = next_y * width + next_x
+                if queued[next_index]:
+                    continue
+                next_pixel = pixels[next_x, next_y]
+                if _color_distance(pixel, next_pixel) <= maximum_step_distance:
+                    queued[next_index] = 1
+                    queue.append((next_x, next_y))
 
     alpha = Image.new("L", (width, height), 255)
     alpha_pixels = alpha.load()
@@ -162,7 +194,7 @@ def generate_speaker_cutout(source: str, destination: Path, cache_dir: Path) -> 
             if background[y * width + x]:
                 alpha_pixels[x, y] = 0
 
-    alpha = alpha.filter(ImageFilter.GaussianBlur(0.8))
+    alpha = _fill_enclosed_foreground(alpha).filter(ImageFilter.GaussianBlur(0.7))
     histogram = alpha.histogram()
     pixel_count = width * height
     transparent_ratio = sum(histogram[:16]) / pixel_count
