@@ -1,4 +1,4 @@
-name: Lint, Build, Test
+name: CI/CD
 
 on:
   pull_request:
@@ -35,3 +35,58 @@ jobs:
 
       - name: Test
         run: make test
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.AZURE_CONTAINER_APP_URL }}
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Sign in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image
+        id: image
+        env:
+          REGISTRY_NAME: ${{ vars.AZURE_CONTAINER_REGISTRY }}
+        run: |
+          registry="${REGISTRY_NAME}.azurecr.io"
+          image="${registry}/imagegen-ui:${GITHUB_SHA}"
+          az acr login --name "${REGISTRY_NAME}"
+          docker build --tag "${image}" .
+          docker push "${image}"
+          echo "name=${image}" >> "${GITHUB_OUTPUT}"
+
+      - name: Deploy to Azure Container Apps
+        env:
+          CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP }}
+          IMAGE: ${{ steps.image.outputs.name }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az containerapp update \
+            --name "${CONTAINER_APP}" \
+            --resource-group "${RESOURCE_GROUP}" \
+            --image "${IMAGE}" \
+            --output none
+
+      - name: Verify deployment
+        env:
+          APP_URL: ${{ vars.AZURE_CONTAINER_APP_URL }}
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 10 --retry-all-errors "${APP_URL}"

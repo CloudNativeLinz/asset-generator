@@ -127,6 +127,13 @@ make azure-deploy \
 and app, then prints the public URL. Run the same target after code or data changes to deploy a new
 revision.
 
+The `CI/CD` GitHub Actions workflow runs linting, a package build, and tests for pull requests and
+pushes to `main`. After those checks pass on `main`, it authenticates to Azure with GitHub OIDC,
+pushes a commit-tagged image to Azure Container Registry, updates the existing Container App, and
+checks the public endpoint. The `production` GitHub environment holds these non-secret variables:
+`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
+`AZURE_CONTAINER_REGISTRY`, `AZURE_CONTAINER_APP`, and `AZURE_CONTAINER_APP_URL`.
+
 Generated files and studio settings live in the container's local `artifacts/` directory. The
 deployment is limited to one replica to keep that local state consistent, but the files do not
 survive a replacement revision. Use an Azure Files volume before relying on the studio for durable
