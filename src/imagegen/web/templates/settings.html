@@ -113,6 +113,13 @@
         cursor: pointer;
         text-decoration: none;
         display: inline-block;
+        transition: box-shadow 160ms ease, filter 160ms ease, transform 160ms ease;
+      }
+
+      .btn:not(:disabled):hover {
+        box-shadow: 0 6px 14px rgba(25, 30, 38, 0.18);
+        filter: brightness(1.08);
+        transform: translateY(-2px);
       }
 
       .btn-primary {
@@ -139,6 +146,12 @@
         margin-top: 0.65rem;
         color: var(--muted);
         font-size: 0.82rem;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .btn {
+          transition: none;
+        }
       }
 
       @media (max-width: 720px) {

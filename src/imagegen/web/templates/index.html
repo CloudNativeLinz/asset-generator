@@ -150,6 +150,13 @@
         text-transform: uppercase;
         font-family: "IBM Plex Mono", monospace;
         cursor: pointer;
+        transition: box-shadow 160ms ease, filter 160ms ease, transform 160ms ease;
+      }
+
+      button:not(:disabled):hover {
+        box-shadow: 0 6px 14px rgba(25, 30, 38, 0.18);
+        filter: brightness(1.08);
+        transform: translateY(-2px);
       }
 
       .btn-primary {
@@ -295,6 +302,10 @@
       @media (prefers-reduced-motion: reduce) {
         .artifact-spinner {
           animation: none;
+        }
+
+        button {
+          transition: none;
         }
       }
 
@@ -572,6 +583,7 @@
         dom.artifactSurface.setAttribute("aria-busy", String(loading));
         dom.artifactLoadingText.textContent = message;
         dom.eventId.disabled = loading;
+        dom.btnGenerateSocial.disabled = loading;
         dom.btnGenerateImages.disabled = loading;
         dom.btnGenerateBundle.disabled = loading;
         dom.btnLoadSnapshot.disabled = loading;
@@ -856,9 +868,14 @@
 
       async function generateSocialOnly() {
         setStatus("Generating social drafts...");
-        const response = await apiPost("/api/generate-social", { id: state.eventId });
-        applySocial(response.social);
-        setStatus("Social drafts generated.", true);
+        setArtifactsLoading(true, "Generating social drafts...");
+        try {
+          const response = await apiPost("/api/generate-social", { id: state.eventId });
+          applySocial(response.social);
+          setStatus("Social drafts generated.", true);
+        } finally {
+          setArtifactsLoading(false);
+        }
       }
 
       async function generateImagesOnly() {

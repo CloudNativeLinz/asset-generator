@@ -33,3 +33,14 @@ def test_index_serializes_template_paths_for_javascript() -> None:
 
     assert 'template: "assets/templates/\\"quoted\\".yaml"' in rendered
     assert "dom.eventMeta.innerHTML" not in rendered
+
+
+def test_generation_controls_share_busy_and_hover_states() -> None:
+    templates_dir = Path("src/imagegen/web/templates")
+    index_source = (templates_dir / "index.html").read_text(encoding="utf-8")
+    settings_source = (templates_dir / "settings.html").read_text(encoding="utf-8")
+
+    assert "dom.btnGenerateSocial.disabled = loading" in index_source
+    assert 'setArtifactsLoading(true, "Generating social drafts...")' in index_source
+    assert "button:not(:disabled):hover" in index_source
+    assert ".btn:not(:disabled):hover" in settings_source
