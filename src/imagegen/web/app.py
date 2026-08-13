@@ -9,10 +9,17 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field, ValidationError
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 
 from ..bundle import generate_event_bundle
 from ..config import CTAVariants
+from ..google_slides import (
+    GoogleSlidesError,
+    generate_google_slides,
+    google_configuration_value,
+    resolve_google_access_token,
+)
 from ..loader import find_event, load_events, load_template
 from ..renderer import render_event
 from ..slides import generate_slide_deck
@@ -47,6 +54,11 @@ class SocialRequest(BaseModel):
     id: int
 
 
+class GoogleSlidesRequest(BaseModel):
+    id: int
+    out: str = "artifacts"
+
+
 class SaveSocialRequest(BaseModel):
     id: int
     social: dict
@@ -59,6 +71,7 @@ class StudioSettings(BaseModel):
     cta_recap: str = "Follow for recap highlights after the event."
     width: int | None = Field(default=None, ge=320)
     image_format: Literal["jpg", "png"] = "jpg"
+    google_slides_template: str = ""
 
 
 def _default_settings() -> StudioSettings:
@@ -142,6 +155,7 @@ def _bundle_snapshot(event_id: int, out_dir: str = "artifacts") -> dict:
         "output_dir": event_dir.as_posix(),
         "images": images,
         "slides": _slides_snapshot(event_dir),
+        "google_slides": _read_json_file(event_dir / "google-slides.json"),
         "animations": _animations_snapshot(event_dir),
         "social": social,
     }
@@ -312,6 +326,38 @@ def create_app(
             {
                 "event_id": event.id,
                 "slides": deck.model_dump(),
+                "snapshot": _bundle_snapshot(event.id, out_dir=payload.out),
+            }
+        )
+
+    @app.post("/api/generate-google-slides")
+    async def generate_google_slides_api(payload: GoogleSlidesRequest) -> JSONResponse:
+        settings = _load_settings(settings_file)
+        if not settings.google_slides_template.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Configure a Google Slides template URL or ID in Studio Settings",
+            )
+
+        events = load_events(events_file)
+        event = find_event(events, payload.id)
+        try:
+            access_token = await run_in_threadpool(resolve_google_access_token)
+            deck = await run_in_threadpool(
+                generate_google_slides,
+                event,
+                template=settings.google_slides_template,
+                access_token=access_token,
+                output_dir=payload.out,
+                folder_id=google_configuration_value("GOOGLE_DRIVE_FOLDER_ID") or None,
+            )
+        except GoogleSlidesError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        return JSONResponse(
+            {
+                "event_id": event.id,
+                "google_slides": deck.model_dump(),
                 "snapshot": _bundle_snapshot(event.id, out_dir=payload.out),
             }
         )

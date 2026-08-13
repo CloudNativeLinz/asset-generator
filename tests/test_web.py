@@ -44,3 +44,16 @@ def test_generation_controls_share_busy_and_hover_states() -> None:
     assert 'setArtifactsLoading(true, "Generating social drafts...")' in index_source
     assert "button:not(:disabled):hover" in index_source
     assert ".btn:not(:disabled):hover" in settings_source
+
+
+def test_google_slides_are_available_for_browser_inspection() -> None:
+    index_source = Path("src/imagegen/web/templates/index.html").read_text(encoding="utf-8")
+
+    assert 'id="googleSlidesSection"' in index_source
+    assert 'id="btnGenerateGoogleSlides"' in index_source
+    assert "async function generateGoogleSlides()" in index_source
+    assert (
+        'dom.btnGenerateGoogleSlides.addEventListener("click", async () =>'
+        in index_source
+    )
+    assert "include_slides: false" in index_source

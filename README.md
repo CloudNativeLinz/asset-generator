@@ -69,6 +69,33 @@ Generate only the PDF slide deck and its PNG pages:
 make generate-slides EVENT_ID=44
 ```
 
+To use a Google Slides presentation as the visual template, create text placeholders such as
+`{{ event.title }}`, `{{ event.date }}`, `{{ event.host }}`, `{{ talks.1.title }}`, and
+`{{ talks.1.speaker }}` in the presentation. Share the template and destination folder with a
+service account as an editor, then point the generator at its JSON key:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/service-account.json"
+make generate-google-slides \
+	EVENT_ID=44 \
+	GOOGLE_SLIDES_TEMPLATE="https://docs.google.com/presentation/d/<presentation-id>/edit"
+```
+
+The source presentation is never modified. The generated presentation URL is saved in
+`artifacts/<event-id>/google-slides.json`. The preview studio can configure the template URL under
+Settings, generate a copy, and open it directly from the Artifact Wall. Set
+`GOOGLE_DRIVE_FOLDER_ID` to place generated presentations in a specific Drive folder.
+The legacy `GOOGLE_DRIVE_ACCESS_TOKEN` option remains available for short-lived user OAuth.
+
+To restrict a service account to one folder, do not enable domain-wide delegation. Share only the
+template and destination folder with the service account's `client_email`, using Editor access, and
+set `GOOGLE_DRIVE_FOLDER_ID` to the folder ID from its Drive URL. Google OAuth scopes are not
+folder-level permissions; the Drive ACL is the security boundary. The destination must be in a
+Shared Drive because service accounts do not have personal My Drive storage quota. Add the service
+account only to a limited-access destination folder in that Shared Drive and do not enable
+domain-wide delegation. If a Shared Drive is unavailable, domain-wide delegation that impersonates
+a Workspace user is required to create files against that user's quota.
+
 Animations require the optional dependencies:
 
 ```bash
@@ -76,7 +103,8 @@ make install-animations
 make generate-animations EVENT_ID=44 PRESET=speaker-spotlight
 ```
 
-Available presets are `speaker-spotlight` and `event-teaser`. GIF output is always produced; MP4 is also produced when the optional encoder is available. `FPS` defaults to `12`.
+Available presets are `speaker-spotlight` and `event-teaser`. GIF output is always produced; MP4 is
+also produced when the optional encoder is available. `FPS` defaults to `12`.
 
 Include one or both presets in a full bundle:
 
@@ -107,11 +135,12 @@ Open <http://localhost:8000>. Override `HOST`, `PORT`, `EVENTS_FILE`, or `TEMPLA
 
 The studio supports:
 
-- social-only, image-only, and full-bundle generation actions
+- social-only, image-only, and combined generation actions
 - editable meetup and per-talk LinkedIn drafts
 - meetup and individual talk regeneration
 - edited draft storage in `artifacts/<event-id>/social-edited.json`
 - existing bundle loading and image preview/download
+- Google Slides generation and presentation links
 - persistent CTA, image width, and image format settings
 
 ## Azure Container Apps

@@ -13,13 +13,14 @@ FPS ?= 12
 MEETUP_TEMPLATE ?= assets/templates/meetup.yaml
 SPEAKER_TEMPLATE ?= assets/templates/speaker.yaml
 ANIMATIONS ?=
+GOOGLE_SLIDES_TEMPLATE ?=
 AZURE_APP ?= cloudnative-asset-generator
 AZURE_RESOURCE_GROUP ?= rg-cloudnative-asset-generator
 AZURE_LOCATION ?= swedencentral
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-slides generate-animations run preview azure-deploy clean
+.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-slides generate-google-slides generate-animations run preview azure-deploy clean
 
 help:
 	@echo "Available targets:"
@@ -34,6 +35,7 @@ help:
 	@echo "  generate-all  Generate images for all events"
 	@echo "  generate-bundle     Generate images, social copy, and slides (requires EVENT_ID)"
 	@echo "  generate-slides     Generate a slide deck PDF (requires EVENT_ID)"
+	@echo "  generate-google-slides Copy and populate a Google Slides template (requires EVENT_ID)"
 	@echo "  generate-animations Generate animated clips (requires EVENT_ID)"
 	@echo "  run           Start local preview web app"
 	@echo "  azure-deploy  Build and deploy the preview app to Azure Container Apps"
@@ -90,6 +92,13 @@ generate-slides:
 		exit 1; \
 	fi
 	imagegen generate-slides --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) $(if $(WIDTH),--width $(WIDTH),)
+
+generate-google-slides:
+	@if [ -z "$(EVENT_ID)" ]; then \
+		echo "EVENT_ID is required. Example: make generate-google-slides EVENT_ID=44 GOOGLE_SLIDES_TEMPLATE='<url-or-id>'"; \
+		exit 1; \
+	fi
+	imagegen generate-google-slides --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) $(if $(GOOGLE_SLIDES_TEMPLATE),--template "$(GOOGLE_SLIDES_TEMPLATE)",)
 
 generate-animations:
 	@if [ -z "$(EVENT_ID)" ]; then \

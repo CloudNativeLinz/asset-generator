@@ -247,6 +247,19 @@
         gap: 0.55rem;
       }
 
+      .artifact-section {
+        margin-top: 1.2rem;
+      }
+
+      .artifact-section[hidden] {
+        display: none;
+      }
+
+      .artifact-section h3 {
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid var(--line);
+      }
+
       .artifact-surface {
         position: relative;
         min-height: 8rem;
@@ -450,7 +463,7 @@
     <main class="app">
       <section class="top">
         <h1>Cloud-Native Linz Social Media Asset Generation</h1>
-        <p>Every core artifact visible at once: inputs, generated images, meetup copy, and per-talk drafts.</p>
+        <p>Inspect generated images, Google Slides, meetup copy, and per-talk drafts in one place.</p>
         <div class="top-actions">
           <a class="btn-light" href="/settings">Settings</a>
         </div>
@@ -480,6 +493,7 @@
             <button id="btnGenerateImages" class="btn-secondary" type="button">Generate Images</button>
             <button id="btnGenerateSocial" class="btn-secondary" type="button">Generate Social</button>
             <button id="btnGenerateBundle" class="btn-primary" type="button">Generate Social & Images</button>
+            <button id="btnGenerateGoogleSlides" class="btn-secondary" type="button">Generate Google Slides</button>
             <button id="btnLoadSnapshot" class="btn-light" type="button">Load Existing</button>
           </div>
           
@@ -493,12 +507,22 @@
         <section class="card">
           <div class="surface-title">
             <h2>Artifact Wall</h2>
-            <span class="subtle" id="artifactCount">0 images</span>
+            <span class="subtle" id="artifactCount">0 assets</span>
           </div>
-          <p class="sub">All generated images shown simultaneously for quick review.</p>
+          <p class="sub">Generated images and Google Slides are shown for quick review.</p>
 
           <div class="artifact-surface" id="artifactSurface" aria-busy="false">
-            <div class="artifact-grid" id="artifactGrid"></div>
+            <section class="artifact-section" id="imageSection" hidden>
+              <h3>Images</h3>
+              <div class="artifact-grid" id="artifactGrid"></div>
+            </section>
+            <section class="artifact-section" id="googleSlidesSection" hidden>
+              <div class="surface-title">
+                <h3>Google Slides</h3>
+                <a id="googleSlidesOpen" target="_blank" rel="noopener noreferrer">Open presentation</a>
+              </div>
+              <p class="sub" id="googleSlidesName"></p>
+            </section>
             <div class="artifact-loading" id="artifactLoading" role="status" aria-live="polite">
               <div class="artifact-loader">
                 <span class="artifact-spinner" aria-hidden="true"></span>
@@ -559,11 +583,16 @@
         talkEditors: document.getElementById("talkEditors"),
         artifactSurface: document.getElementById("artifactSurface"),
         artifactGrid: document.getElementById("artifactGrid"),
+        imageSection: document.getElementById("imageSection"),
+        googleSlidesSection: document.getElementById("googleSlidesSection"),
+        googleSlidesOpen: document.getElementById("googleSlidesOpen"),
+        googleSlidesName: document.getElementById("googleSlidesName"),
         artifactCount: document.getElementById("artifactCount"),
         artifactLoadingText: document.getElementById("artifactLoadingText"),
         btnGenerateSocial: document.getElementById("btnGenerateSocial"),
         btnGenerateImages: document.getElementById("btnGenerateImages"),
         btnGenerateBundle: document.getElementById("btnGenerateBundle"),
+        btnGenerateGoogleSlides: document.getElementById("btnGenerateGoogleSlides"),
         btnLoadSnapshot: document.getElementById("btnLoadSnapshot"),
         btnRegenMeetup: document.getElementById("btnRegenMeetup"),
         btnSaveDrafts: document.getElementById("btnSaveDrafts"),
@@ -586,6 +615,8 @@
         dom.btnGenerateSocial.disabled = loading;
         dom.btnGenerateImages.disabled = loading;
         dom.btnGenerateBundle.disabled = loading;
+        dom.btnGenerateGoogleSlides.disabled =
+          loading || !(state.settings?.google_slides_template || "").trim();
         dom.btnLoadSnapshot.disabled = loading;
       }
 
@@ -618,6 +649,7 @@
           format: settings.image_format || "jpg",
           out: "artifacts",
           include_social: includeSocial,
+          include_slides: false,
         };
         if (typeof settings.width === "number") {
           body.width = settings.width;
@@ -788,13 +820,17 @@
         const imageLoads = [];
 
         const images = snapshot?.images || [];
+        const googleSlides = snapshot?.google_slides || null;
         const meetupIndex = images.findIndex((asset) => /(^|[-_])meetup([-.]|$)/i.test(asset.name));
         const orderedImages =
           meetupIndex >= 0
             ? [images[meetupIndex], ...images.slice(0, meetupIndex), ...images.slice(meetupIndex + 1)]
             : images;
         state.assetImages = orderedImages;
-        dom.artifactCount.textContent = `${orderedImages.length} image${orderedImages.length === 1 ? "" : "s"}`;
+        const assetCount = orderedImages.length + (googleSlides ? 1 : 0);
+        dom.artifactCount.textContent = `${assetCount} asset${assetCount === 1 ? "" : "s"}`;
+        dom.imageSection.hidden = !orderedImages.length;
+        dom.googleSlidesSection.hidden = !googleSlides;
 
         orderedImages.forEach((asset, index) => {
           const card = document.createElement("div");
@@ -843,7 +879,15 @@
           dom.artifactGrid.appendChild(card);
         });
 
-        if (!orderedImages.length) {
+        if (googleSlides) {
+          dom.googleSlidesOpen.href = googleSlides.url;
+          dom.googleSlidesName.textContent = googleSlides.name;
+        } else {
+          dom.googleSlidesOpen.removeAttribute("href");
+          dom.googleSlidesName.textContent = "";
+        }
+
+        if (!state.assetImages.length) {
           closeLightbox();
         }
 
@@ -901,7 +945,22 @@
           if (response.snapshot) {
             await renderAssets(response.snapshot);
           }
-          setStatus("Bundle generated: drafts + images are ready.", true);
+          setStatus("Social drafts and images generated.", true);
+        } finally {
+          setArtifactsLoading(false);
+        }
+      }
+
+      async function generateGoogleSlides() {
+        setStatus("Copying and populating the Google Slides template...");
+        setArtifactsLoading(true, "Generating Google Slides...");
+        try {
+          const response = await apiPost("/api/generate-google-slides", {
+            id: state.eventId,
+            out: "artifacts",
+          });
+          await renderAssets(response.snapshot);
+          setStatus("Google Slides presentation generated.", true);
         } finally {
           setArtifactsLoading(false);
         }
@@ -965,6 +1024,14 @@
           await generateFullBundle();
         } catch (error) {
           setStatus(`Full bundle generation failed: ${String(error).slice(0, 120)}`);
+        }
+      });
+
+      dom.btnGenerateGoogleSlides.addEventListener("click", async () => {
+        try {
+          await generateGoogleSlides();
+        } catch (error) {
+          setStatus(`Google Slides generation failed: ${String(error).slice(0, 120)}`);
         }
       });
 
