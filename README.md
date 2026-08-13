@@ -85,8 +85,7 @@ The source presentation is never modified. The generated presentation URL is sav
 `artifacts/<event-id>/google-slides.json`. The preview studio can configure the template URL under
 Settings, generate a copy, preview it inline via an embedded iframe, and open it directly from the
 Artifact Wall. Set `GOOGLE_DRIVE_FOLDER_ID` to place generated presentations in a specific Drive
-folder.
-The legacy `GOOGLE_DRIVE_ACCESS_TOKEN` option remains available for short-lived user OAuth.
+folder. The legacy `GOOGLE_DRIVE_ACCESS_TOKEN` option remains available for short-lived user OAuth.
 
 To restrict a service account to one folder, do not enable domain-wide delegation. Share only the
 template and destination folder with the service account's `client_email`, using Editor access, and
