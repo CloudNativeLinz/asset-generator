@@ -57,3 +57,5 @@ def test_google_slides_are_available_for_browser_inspection() -> None:
         in index_source
     )
     assert "include_slides: false" in index_source
+    assert 'id="googleSlidesEmbed"' in index_source
+    assert "dom.googleSlidesEmbed.src = googleSlides.embed_url" in index_source

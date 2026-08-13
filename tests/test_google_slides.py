@@ -161,6 +161,7 @@ def test_generate_google_slides_copies_template_and_replaces_text(
 
     assert deck.presentation_id == "generated-presentation"
     assert deck.url.endswith("/generated-presentation/edit")
+    assert deck.embed_url.endswith("/generated-presentation/embed")
     assert requests[0][1]["parents"] == ["destination-folder"]
     replacement_requests = requests[1][1]["requests"]
     assert any(
@@ -174,6 +175,7 @@ def test_generate_google_slides_copies_template_and_replaces_text(
     )
     metadata = json.loads((tmp_path / "32" / "google-slides.json").read_text())
     assert metadata["url"] == deck.url
+    assert metadata["embed_url"] == deck.embed_url
 
 
 def test_generate_google_slides_explains_service_account_quota_failure(
