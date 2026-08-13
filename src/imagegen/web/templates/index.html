@@ -260,6 +260,25 @@
         border-bottom: 1px solid var(--line);
       }
 
+      .google-slides-embed {
+        position: relative;
+        width: 100%;
+        max-width: 60rem;
+        aspect-ratio: 16 / 9;
+        margin-top: 0.6rem;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+
+      .google-slides-embed iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+
       .artifact-surface {
         position: relative;
         min-height: 8rem;
@@ -522,6 +541,14 @@
                 <a id="googleSlidesOpen" target="_blank" rel="noopener noreferrer">Open presentation</a>
               </div>
               <p class="sub" id="googleSlidesName"></p>
+              <div class="google-slides-embed">
+                <iframe
+                  id="googleSlidesEmbed"
+                  title="Google Slides preview"
+                  allowfullscreen
+                  loading="lazy"
+                ></iframe>
+              </div>
             </section>
             <div class="artifact-loading" id="artifactLoading" role="status" aria-live="polite">
               <div class="artifact-loader">
@@ -587,6 +614,7 @@
         googleSlidesSection: document.getElementById("googleSlidesSection"),
         googleSlidesOpen: document.getElementById("googleSlidesOpen"),
         googleSlidesName: document.getElementById("googleSlidesName"),
+        googleSlidesEmbed: document.getElementById("googleSlidesEmbed"),
         artifactCount: document.getElementById("artifactCount"),
         artifactLoadingText: document.getElementById("artifactLoadingText"),
         btnGenerateSocial: document.getElementById("btnGenerateSocial"),
@@ -882,9 +910,11 @@
         if (googleSlides) {
           dom.googleSlidesOpen.href = googleSlides.url;
           dom.googleSlidesName.textContent = googleSlides.name;
+          dom.googleSlidesEmbed.src = googleSlides.embed_url || `${googleSlides.url}?embedded=true`;
         } else {
           dom.googleSlidesOpen.removeAttribute("href");
           dom.googleSlidesName.textContent = "";
+          dom.googleSlidesEmbed.removeAttribute("src");
         }
 
         if (!state.assetImages.length) {
