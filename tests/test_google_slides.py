@@ -5,6 +5,7 @@ import pytest
 
 from imagegen.google_slides import (
     GoogleSlidesError,
+    agenda_items,
     event_replacements,
     extract_presentation_id,
     generate_google_slides,
@@ -49,6 +50,18 @@ def test_event_replacements_include_indexed_talks() -> None:
     assert replacements["talks.2.speaker"] == "Test Speaker 2"
 
 
+def test_agenda_items_include_talk_titles_speakers_and_timing() -> None:
+    event = find_event(load_events("_data/sample-events.yml"), 32)
+
+    assert agenda_items(event) == [
+        ("18:00", "Opening"),
+        ("18:10", "Test Talk 1\nTest Speaker 1"),
+        ("18:55", "5-minute break"),
+        ("19:00", "Test Talk 2\nTest Speaker 2"),
+        ("19:45", "Raffle + networking"),
+    ]
+
+
 def test_explicit_access_token_does_not_require_credentials_file(monkeypatch) -> None:
     monkeypatch.delenv("GOOGLE_DRIVE_ACCESS_TOKEN", raising=False)
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
@@ -56,9 +69,7 @@ def test_explicit_access_token_does_not_require_credentials_file(monkeypatch) ->
     assert resolve_google_access_token(access_token="token") == "token"
 
 
-def test_service_account_credentials_can_be_loaded_from_dotenv(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_service_account_credentials_can_be_loaded_from_dotenv(tmp_path: Path, monkeypatch) -> None:
     credentials_path = tmp_path / "service-account.json"
     credentials_path.write_text(
         json.dumps(
@@ -133,7 +144,12 @@ def test_generate_google_slides_copies_template_and_replaces_text(
             return FakeResponse({"id": "generated-presentation"})
         return FakeResponse({"replies": []})
 
+    def fake_get(url: str, *, headers: dict, timeout: int) -> FakeResponse:
+        assert url.endswith("/presentations/generated-presentation")
+        return FakeResponse({"slides": [{"objectId": "titleSlide"}]})
+
     monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
+    monkeypatch.setattr("imagegen.google_slides.requests.get", fake_get)
 
     deck = generate_google_slides(
         event,
@@ -150,6 +166,10 @@ def test_generate_google_slides_copies_template_and_replaces_text(
     assert any(
         request["replaceAllText"]["containsText"]["text"] == "{{ event.title }}"
         and request["replaceAllText"]["replaceText"] == "Test Event"
+        for request in replacement_requests
+    )
+    assert any(
+        request.get("createSlide", {}).get("objectId") == "imagegenAgenda32"
         for request in replacement_requests
     )
     metadata = json.loads((tmp_path / "32" / "google-slides.json").read_text())
@@ -194,11 +214,15 @@ def test_generate_google_slides_reuses_event_presentation_after_quota_failure(
         return FakeResponse({"replies": []})
 
     def fake_get(
-        url: str, *, headers: dict, params: dict, timeout: int
+        url: str, *, headers: dict, timeout: int, params: dict | None = None
     ) -> FakeResponse:
-        assert "name = '32'" in params["q"]
-        assert "'destination-folder' in parents" in params["q"]
-        return FakeResponse({"files": [{"id": "existing-presentation", "name": "32"}]})
+        if url.endswith("/drive/v3/files"):
+            assert params is not None
+            assert "name = '32'" in params["q"]
+            assert "'destination-folder' in parents" in params["q"]
+            return FakeResponse({"files": [{"id": "existing-presentation", "name": "32"}]})
+        assert url.endswith("/presentations/existing-presentation")
+        return FakeResponse({"slides": [{"objectId": "imagegenAgenda32"}]})
 
     monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
     monkeypatch.setattr("imagegen.google_slides.requests.get", fake_get)

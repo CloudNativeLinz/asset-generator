@@ -66,22 +66,21 @@ def resolve_google_access_token(
         return token
 
     key_path = (
-        credentials_file
-        or google_configuration_value("GOOGLE_APPLICATION_CREDENTIALS")
+        credentials_file or google_configuration_value("GOOGLE_APPLICATION_CREDENTIALS")
     ).strip()
     if not key_path:
         token = getenv("GOOGLE_DRIVE_ACCESS_TOKEN", "").strip()
         if token:
             return token
     if not key_path:
-        raise GoogleSlidesError(
-            "Set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file"
-        )
+        raise GoogleSlidesError("Set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file")
 
     try:
         service_account = json.loads(Path(key_path).read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
-        raise GoogleSlidesError(f"Unable to load Google service-account credentials: {exc}") from exc
+        raise GoogleSlidesError(
+            f"Unable to load Google service-account credentials: {exc}"
+        ) from exc
 
     client_email = service_account.get("client_email")
     private_key = service_account.get("private_key")
@@ -187,6 +186,159 @@ def _replace_text_requests(event: Event) -> list[dict[str, Any]]:
     return requests_payload
 
 
+def agenda_items(event: Event) -> list[tuple[str, str]]:
+    def talk_text(index: int) -> str:
+        if index >= len(event.talks):
+            return "Talk details to be announced"
+        talk = event.talks[index]
+        details = [part for part in (talk.title, talk.speaker) if part]
+        return "\n".join(details) or "Talk details to be announced"
+
+    return [
+        ("18:00", "Opening"),
+        ("18:10", talk_text(0)),
+        ("18:55", "5-minute break"),
+        ("19:00", talk_text(1)),
+        ("19:45", "Raffle + networking"),
+    ]
+
+
+def _agenda_slide_id(event: Event) -> str:
+    return f"imagegenAgenda{event.id}"
+
+
+def _agenda_requests(event: Event, presentation: dict[str, Any]) -> list[dict[str, Any]]:
+    slide_id = _agenda_slide_id(event)
+    existing_slides = presentation.get("slides", [])
+    has_existing_agenda = any(slide.get("objectId") == slide_id for slide in existing_slides)
+    remaining_slide_count = len(existing_slides) - int(has_existing_agenda)
+    insertion_index = min(1, remaining_slide_count)
+
+    requests_payload: list[dict[str, Any]] = []
+    if has_existing_agenda:
+        requests_payload.append({"deleteObject": {"objectId": slide_id}})
+
+    requests_payload.extend(
+        [
+            {
+                "createSlide": {
+                    "objectId": slide_id,
+                    "insertionIndex": insertion_index,
+                    "slideLayoutReference": {"predefinedLayout": "BLANK"},
+                }
+            },
+            {
+                "createShape": {
+                    "objectId": f"{slide_id}Title",
+                    "shapeType": "TEXT_BOX",
+                    "elementProperties": {
+                        "pageObjectId": slide_id,
+                        "size": {
+                            "width": {"magnitude": 620, "unit": "PT"},
+                            "height": {"magnitude": 42, "unit": "PT"},
+                        },
+                        "transform": {
+                            "scaleX": 1,
+                            "scaleY": 1,
+                            "translateX": 50,
+                            "translateY": 28,
+                            "unit": "PT",
+                        },
+                    },
+                }
+            },
+            {
+                "insertText": {
+                    "objectId": f"{slide_id}Title",
+                    "text": "Agenda",
+                }
+            },
+            {
+                "updateTextStyle": {
+                    "objectId": f"{slide_id}Title",
+                    "style": {
+                        "bold": True,
+                        "fontSize": {"magnitude": 28, "unit": "PT"},
+                    },
+                    "textRange": {"type": "ALL"},
+                    "fields": "bold,fontSize",
+                }
+            },
+        ]
+    )
+
+    for index, (start_time, description) in enumerate(agenda_items(event), start=1):
+        y_position = 82 + ((index - 1) * 60)
+        time_id = f"{slide_id}Time{index}"
+        detail_id = f"{slide_id}Detail{index}"
+        requests_payload.extend(
+            [
+                {
+                    "createShape": {
+                        "objectId": time_id,
+                        "shapeType": "TEXT_BOX",
+                        "elementProperties": {
+                            "pageObjectId": slide_id,
+                            "size": {
+                                "width": {"magnitude": 75, "unit": "PT"},
+                                "height": {"magnitude": 45, "unit": "PT"},
+                            },
+                            "transform": {
+                                "scaleX": 1,
+                                "scaleY": 1,
+                                "translateX": 55,
+                                "translateY": y_position,
+                                "unit": "PT",
+                            },
+                        },
+                    }
+                },
+                {"insertText": {"objectId": time_id, "text": start_time}},
+                {
+                    "updateTextStyle": {
+                        "objectId": time_id,
+                        "style": {
+                            "bold": True,
+                            "fontSize": {"magnitude": 16, "unit": "PT"},
+                        },
+                        "textRange": {"type": "ALL"},
+                        "fields": "bold,fontSize",
+                    }
+                },
+                {
+                    "createShape": {
+                        "objectId": detail_id,
+                        "shapeType": "TEXT_BOX",
+                        "elementProperties": {
+                            "pageObjectId": slide_id,
+                            "size": {
+                                "width": {"magnitude": 510, "unit": "PT"},
+                                "height": {"magnitude": 50, "unit": "PT"},
+                            },
+                            "transform": {
+                                "scaleX": 1,
+                                "scaleY": 1,
+                                "translateX": 145,
+                                "translateY": y_position,
+                                "unit": "PT",
+                            },
+                        },
+                    }
+                },
+                {"insertText": {"objectId": detail_id, "text": description}},
+                {
+                    "updateTextStyle": {
+                        "objectId": detail_id,
+                        "style": {"fontSize": {"magnitude": 16, "unit": "PT"}},
+                        "textRange": {"type": "ALL"},
+                        "fields": "fontSize",
+                    }
+                },
+            ]
+        )
+    return requests_payload
+
+
 def _post_json(url: str, *, access_token: str, payload: dict[str, Any]) -> dict[str, Any]:
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -212,6 +364,28 @@ def _post_json(url: str, *, access_token: str, payload: dict[str, Any]) -> dict[
         raise GoogleSlidesError("Google API returned a non-JSON response") from exc
     if not isinstance(body, dict):
         raise GoogleSlidesError("Google API returned an invalid response")
+    return body
+
+
+def _get_presentation(presentation_id: str, access_token: str) -> dict[str, Any]:
+    headers = {"Authorization": f"Bearer {access_token}"}
+    try:
+        response = requests.get(
+            f"{SLIDES_API}/presentations/{presentation_id}",
+            headers=headers,
+            timeout=45,
+        )
+    except requests.RequestException as exc:
+        raise GoogleSlidesError(f"Failed to read Google Slides presentation: {exc}") from exc
+    if response.status_code >= 400:
+        detail = response.text.strip()[:500]
+        raise GoogleSlidesError(f"Google Slides request failed ({response.status_code}): {detail}")
+    try:
+        body = response.json()
+    except requests.exceptions.JSONDecodeError as exc:
+        raise GoogleSlidesError("Google Slides returned a non-JSON response") from exc
+    if not isinstance(body, dict):
+        raise GoogleSlidesError("Google Slides returned an invalid response")
     return body
 
 
@@ -302,10 +476,16 @@ def generate_google_slides(
     if isinstance(resolved_name, str) and resolved_name:
         presentation_name = resolved_name
 
+    presentation = _get_presentation(presentation_id, resolved_access_token)
     _post_json(
         f"{SLIDES_API}/presentations/{presentation_id}:batchUpdate",
         access_token=resolved_access_token,
-        payload={"requests": _replace_text_requests(event)},
+        payload={
+            "requests": [
+                *_replace_text_requests(event),
+                *_agenda_requests(event, presentation),
+            ]
+        },
     )
 
     deck = GoogleSlideDeck(
