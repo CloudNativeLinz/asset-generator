@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from os import getenv
 from pathlib import Path
 from typing import Annotated
 
@@ -10,6 +9,7 @@ import uvicorn
 from .animate import ANIMATION_PRESETS, generate_animations
 from .bundle import generate_event_bundle
 from .google_slides import (
+    DEFAULT_GOOGLE_SLIDES_TEMPLATE,
     GoogleSlidesError,
     generate_google_slides,
     google_configuration_value,
@@ -171,15 +171,17 @@ def generate_google_slides_command(
     template: str = typer.Option(
         "",
         "--template",
-        help="Google Slides template URL or file ID; defaults to GOOGLE_SLIDES_TEMPLATE_ID",
+        help="Google Slides template URL or file ID",
     ),
     id: int | None = typer.Option(None, "--id", help="Single event ID to render"),
     file: str = typer.Option("_data/events.yml", "--file", help="Path to events YAML"),
     out: str = typer.Option("artifacts", "--out", help="Output directory"),
 ) -> None:
-    resolved_template = template.strip() or getenv("GOOGLE_SLIDES_TEMPLATE_ID", "").strip()
-    if not resolved_template:
-        raise typer.BadParameter("--template or GOOGLE_SLIDES_TEMPLATE_ID is required")
+    resolved_template = (
+        template.strip()
+        or google_configuration_value("GOOGLE_SLIDES_TEMPLATE_ID")
+        or DEFAULT_GOOGLE_SLIDES_TEMPLATE
+    )
 
     events = load_events(file)
     selected = [find_event(events, id)] if id is not None else events

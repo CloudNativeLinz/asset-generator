@@ -14,6 +14,9 @@ from .config import Event, GoogleSlideDeck
 
 DRIVE_API = "https://www.googleapis.com/drive/v3"
 SLIDES_API = "https://slides.googleapis.com/v1"
+DEFAULT_GOOGLE_SLIDES_TEMPLATE = (
+    "https://docs.google.com/presentation/d/" "1GPgXC7C3l5c3eJ8dR9TjjY7UDrqSrA3Tn5BmUWK6JQo/edit"
+)
 PRESENTATION_ID_PATTERN = re.compile(r"/presentation/d/([A-Za-z0-9_-]+)")
 GOOGLE_API_SCOPES = (
     "https://www.googleapis.com/auth/drive",
@@ -199,33 +202,48 @@ def agenda_items(event: Event) -> list[tuple[str, str]]:
     ]
 
 
-def _agenda_slide_id(event: Event) -> str:
-    return f"imagegenAgenda{event.id}"
-
-
 def _agenda_requests(event: Event, presentation: dict[str, Any]) -> list[dict[str, Any]]:
-    slide_id = _agenda_slide_id(event)
     existing_slides = presentation.get("slides", [])
-    has_existing_agenda = any(slide.get("objectId") == slide_id for slide in existing_slides)
-    remaining_slide_count = len(existing_slides) - int(has_existing_agenda)
-    insertion_index = min(1, remaining_slide_count)
-
+    object_prefix = f"imagegenAgenda{event.id}"
     requests_payload: list[dict[str, Any]] = []
-    if has_existing_agenda:
-        requests_payload.append({"deleteObject": {"objectId": slide_id}})
+
+    if len(existing_slides) < 3:
+        for insertion_index in range(len(existing_slides), 3):
+            generated_slide_id = (
+                f"{object_prefix}Slide"
+                if insertion_index == 2
+                else f"imagegenReserved{event.id}Slide{insertion_index + 1}"
+            )
+            requests_payload.append(
+                {
+                    "createSlide": {
+                        "objectId": generated_slide_id,
+                        "insertionIndex": insertion_index,
+                        "slideLayoutReference": {"predefinedLayout": "BLANK"},
+                    }
+                }
+            )
+        slide_id = f"{object_prefix}Slide"
+        agenda_slide: dict[str, Any] = {}
+    else:
+        agenda_slide = existing_slides[2]
+        slide_id = agenda_slide.get("objectId")
+        if not isinstance(slide_id, str) or not slide_id:
+            raise GoogleSlidesError("Google Slides template slide 3 has no object ID")
 
     requests_payload.extend(
         [
-            {
-                "createSlide": {
-                    "objectId": slide_id,
-                    "insertionIndex": insertion_index,
-                    "slideLayoutReference": {"predefinedLayout": "BLANK"},
-                }
-            },
+            {"deleteObject": {"objectId": element["objectId"]}}
+            for element in agenda_slide.get("pageElements", [])
+            if isinstance(element.get("objectId"), str)
+            and element["objectId"].startswith(object_prefix)
+        ]
+    )
+    requests_payload.extend(
+        [
             {
                 "createShape": {
-                    "objectId": f"{slide_id}Title",
+                    "objectId": f"{object_prefix}Title",
                     "shapeType": "TEXT_BOX",
                     "elementProperties": {
                         "pageObjectId": slide_id,
@@ -245,13 +263,13 @@ def _agenda_requests(event: Event, presentation: dict[str, Any]) -> list[dict[st
             },
             {
                 "insertText": {
-                    "objectId": f"{slide_id}Title",
+                    "objectId": f"{object_prefix}Title",
                     "text": "Agenda",
                 }
             },
             {
                 "updateTextStyle": {
-                    "objectId": f"{slide_id}Title",
+                    "objectId": f"{object_prefix}Title",
                     "style": {
                         "bold": True,
                         "fontSize": {"magnitude": 28, "unit": "PT"},
@@ -265,8 +283,8 @@ def _agenda_requests(event: Event, presentation: dict[str, Any]) -> list[dict[st
 
     for index, (start_time, description) in enumerate(agenda_items(event), start=1):
         y_position = 82 + ((index - 1) * 60)
-        time_id = f"{slide_id}Time{index}"
-        detail_id = f"{slide_id}Detail{index}"
+        time_id = f"{object_prefix}Time{index}"
+        detail_id = f"{object_prefix}Detail{index}"
         requests_payload.extend(
             [
                 {
@@ -385,6 +403,11 @@ def _get_presentation(presentation_id: str, access_token: str) -> dict[str, Any]
     return body
 
 
+def _slide_count(presentation: dict[str, Any]) -> int:
+    slides = presentation.get("slides", [])
+    return len(slides) if isinstance(slides, list) else 0
+
+
 def _find_existing_event_presentation(
     *,
     event_id: int,
@@ -467,11 +490,22 @@ def generate_google_slides(
     presentation_id = destination.get("id")
     if not isinstance(presentation_id, str) or not presentation_id:
         raise GoogleSlidesError("Google Drive copy response did not include a presentation ID")
+    if presentation_id == template_id:
+        raise GoogleSlidesError("Refusing to modify the Google Slides source template")
     resolved_name = destination.get("name")
     if isinstance(resolved_name, str) and resolved_name:
         presentation_name = resolved_name
 
     presentation = _get_presentation(presentation_id, resolved_access_token)
+    if destination.get("name") == str(event.id):
+        template_presentation = _get_presentation(template_id, resolved_access_token)
+        if _slide_count(presentation) < _slide_count(template_presentation):
+            raise GoogleDriveStorageQuotaError(
+                f"The existing presentation '{event.id}' is not a complete copy of template "
+                f"'{template_presentation.get('title', template_id)}'. In the configured My Drive "
+                f"folder, make a copy of the template and name it '{event.id}', replacing the "
+                "incomplete presentation, or configure a Shared Drive folder."
+            )
     _post_json(
         f"{SLIDES_API}/presentations/{presentation_id}:batchUpdate",
         access_token=resolved_access_token,

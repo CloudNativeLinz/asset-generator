@@ -15,6 +15,7 @@ from starlette.requests import Request
 from ..bundle import generate_event_bundle
 from ..config import CTAVariants
 from ..google_slides import (
+    DEFAULT_GOOGLE_SLIDES_TEMPLATE,
     GoogleSlidesError,
     generate_google_slides,
     google_configuration_value,
@@ -70,7 +71,7 @@ class StudioSettings(BaseModel):
     cta_recap: str = "Follow for recap highlights after the event."
     width: int | None = Field(default=None, ge=320)
     image_format: Literal["jpg", "png"] = "jpg"
-    google_slides_template: str = ""
+    google_slides_template: str = DEFAULT_GOOGLE_SLIDES_TEMPLATE
 
 
 def _default_settings() -> StudioSettings:

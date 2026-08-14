@@ -4,6 +4,8 @@ from pathlib import Path
 import pytest
 
 from imagegen.google_slides import (
+    DEFAULT_GOOGLE_SLIDES_TEMPLATE,
+    GoogleDriveStorageQuotaError,
     GoogleSlidesError,
     agenda_items,
     event_replacements,
@@ -37,6 +39,13 @@ def test_extract_presentation_id_accepts_url_and_id() -> None:
 
     with pytest.raises(GoogleSlidesError):
         extract_presentation_id("https://example.com/not-a-presentation")
+
+
+def test_default_template_is_the_cloud_native_linz_deck() -> None:
+    assert (
+        extract_presentation_id(DEFAULT_GOOGLE_SLIDES_TEMPLATE)
+        == "1GPgXC7C3l5c3eJ8dR9TjjY7UDrqSrA3Tn5BmUWK6JQo"
+    )
 
 
 def test_event_replacements_include_indexed_talks() -> None:
@@ -143,7 +152,16 @@ def test_generate_google_slides_copies_template_and_replaces_text(
 
     def fake_get(url: str, *, headers: dict, timeout: int) -> FakeResponse:
         assert url.endswith("/presentations/generated-presentation")
-        return FakeResponse({"slides": [{"objectId": "titleSlide"}]})
+        return FakeResponse(
+            {
+                "slides": [
+                    {"objectId": "titleSlide"},
+                    {"objectId": "secondSlide"},
+                    {"objectId": "agendaSlide"},
+                    {"objectId": "fourthSlide"},
+                ]
+            }
+        )
 
     monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
     monkeypatch.setattr("imagegen.google_slides.requests.get", fake_get)
@@ -165,12 +183,62 @@ def test_generate_google_slides_copies_template_and_replaces_text(
         and request["replaceAllText"]["replaceText"] == "Test Event"
         for request in replacement_requests
     )
-    assert any(
-        request.get("createSlide", {}).get("objectId") == "imagegenAgenda32"
+    assert not any(
+        "createSlide" in request or "deleteObject" in request for request in replacement_requests
+    )
+    agenda_shapes = [
+        request["createShape"]
         for request in replacement_requests
+        if request.get("createShape", {}).get("objectId", "").startswith("imagegenAgenda32")
+    ]
+    assert agenda_shapes
+    assert all(
+        shape["elementProperties"]["pageObjectId"] == "agendaSlide" for shape in agenda_shapes
     )
     metadata = json.loads((tmp_path / "32" / "google-slides.json").read_text())
     assert metadata["url"] == deck.url
+
+
+def test_generate_google_slides_adds_missing_slides_before_agenda(
+    tmp_path: Path, monkeypatch
+) -> None:
+    event = find_event(load_events("_data/sample-events.yml"), 32)
+    batch_requests: list[dict] = []
+
+    def fake_post(url: str, *, headers: dict, json: dict, timeout: int) -> FakeResponse:
+        if "/copy?" in url:
+            return FakeResponse({"id": "generated-presentation"})
+        batch_requests.extend(json["requests"])
+        return FakeResponse({"replies": []})
+
+    def fake_get(url: str, *, headers: dict, timeout: int) -> FakeResponse:
+        return FakeResponse({"slides": [{"objectId": "titleSlide"}]})
+
+    monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
+    monkeypatch.setattr("imagegen.google_slides.requests.get", fake_get)
+
+    generate_google_slides(
+        event,
+        template="source-presentation",
+        access_token="token",
+        output_dir=str(tmp_path),
+    )
+
+    created_slides = [
+        request["createSlide"] for request in batch_requests if "createSlide" in request
+    ]
+    assert [slide["insertionIndex"] for slide in created_slides] == [1, 2]
+    assert created_slides[-1]["objectId"] == "imagegenAgenda32Slide"
+    agenda_shapes = [
+        request["createShape"]
+        for request in batch_requests
+        if request.get("createShape", {}).get("objectId", "").startswith("imagegenAgenda32")
+    ]
+    assert agenda_shapes
+    assert all(
+        shape["elementProperties"]["pageObjectId"] == "imagegenAgenda32Slide"
+        for shape in agenda_shapes
+    )
 
 
 def test_generate_google_slides_explains_service_account_quota_failure(
@@ -187,6 +255,27 @@ def test_generate_google_slides_explains_service_account_quota_failure(
     monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
 
     with pytest.raises(GoogleSlidesError, match="Shared Drive destination"):
+        generate_google_slides(
+            event,
+            template="source-presentation",
+            access_token="token",
+            output_dir=str(tmp_path),
+        )
+
+
+def test_generate_google_slides_never_updates_the_source_template(
+    tmp_path: Path, monkeypatch
+) -> None:
+    event = find_event(load_events("_data/sample-events.yml"), 32)
+
+    def fake_post(url: str, *, headers: dict, json: dict, timeout: int) -> FakeResponse:
+        if "/copy?" in url:
+            return FakeResponse({"id": "source-presentation"})
+        raise AssertionError("The source template must not receive slide updates")
+
+    monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
+
+    with pytest.raises(GoogleSlidesError, match="Refusing to modify"):
         generate_google_slides(
             event,
             template="source-presentation",
@@ -218,8 +307,21 @@ def test_generate_google_slides_reuses_event_presentation_after_quota_failure(
             assert "name = '32'" in params["q"]
             assert "'destination-folder' in parents" in params["q"]
             return FakeResponse({"files": [{"id": "existing-presentation", "name": "32"}]})
-        assert url.endswith("/presentations/existing-presentation")
-        return FakeResponse({"slides": [{"objectId": "imagegenAgenda32"}]})
+        assert url.endswith(
+            ("/presentations/existing-presentation", "/presentations/source-presentation")
+        )
+        return FakeResponse(
+            {
+                "slides": [
+                    {"objectId": "titleSlide"},
+                    {"objectId": "secondSlide"},
+                    {
+                        "objectId": "agendaSlide",
+                        "pageElements": [{"objectId": "imagegenAgenda32Title"}],
+                    },
+                ]
+            }
+        )
 
     monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
     monkeypatch.setattr("imagegen.google_slides.requests.get", fake_get)
@@ -235,3 +337,47 @@ def test_generate_google_slides_reuses_event_presentation_after_quota_failure(
     assert deck.presentation_id == "existing-presentation"
     assert deck.name == "32"
     assert posted_urls[-1].endswith("/presentations/existing-presentation:batchUpdate")
+
+
+def test_generate_google_slides_rejects_incomplete_my_drive_fallback(
+    tmp_path: Path, monkeypatch
+) -> None:
+    event = find_event(load_events("_data/sample-events.yml"), 32)
+
+    def fake_post(url: str, *, headers: dict, json: dict, timeout: int) -> FakeResponse:
+        return FakeResponse(
+            {"error": {"errors": [{"reason": "storageQuotaExceeded"}]}},
+            status_code=403,
+        )
+
+    def fake_get(
+        url: str, *, headers: dict, timeout: int, params: dict | None = None
+    ) -> FakeResponse:
+        if url.endswith("/drive/v3/files"):
+            return FakeResponse({"files": [{"id": "existing-presentation", "name": "32"}]})
+        if url.endswith("/presentations/existing-presentation"):
+            return FakeResponse({"slides": [{"objectId": "titleSlide"}]})
+        if url.endswith("/presentations/source-presentation"):
+            return FakeResponse(
+                {
+                    "title": "00",
+                    "slides": [
+                        {"objectId": "templateSlide1"},
+                        {"objectId": "templateSlide2"},
+                        {"objectId": "templateSlide3"},
+                    ],
+                }
+            )
+        raise AssertionError(f"Unexpected request: {url}")
+
+    monkeypatch.setattr("imagegen.google_slides.requests.post", fake_post)
+    monkeypatch.setattr("imagegen.google_slides.requests.get", fake_get)
+
+    with pytest.raises(GoogleDriveStorageQuotaError, match="not a complete copy"):
+        generate_google_slides(
+            event,
+            template="source-presentation",
+            access_token="token",
+            output_dir=str(tmp_path),
+            folder_id="destination-folder",
+        )

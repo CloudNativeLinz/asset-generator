@@ -13,7 +13,7 @@ FPS ?= 12
 MEETUP_TEMPLATE ?= assets/templates/meetup.yaml
 SPEAKER_TEMPLATE ?= assets/templates/speaker.yaml
 ANIMATIONS ?=
-GOOGLE_SLIDES_TEMPLATE ?=
+GOOGLE_SLIDES_TEMPLATE ?= https://docs.google.com/presentation/d/1GPgXC7C3l5c3eJ8dR9TjjY7UDrqSrA3Tn5BmUWK6JQo/edit
 AZURE_APP ?= cloudnative-asset-generator
 AZURE_RESOURCE_GROUP ?= rg-cloudnative-asset-generator
 AZURE_LOCATION ?= swedencentral
@@ -98,7 +98,7 @@ generate-google-slides:
 		echo "EVENT_ID is required. Example: make generate-google-slides EVENT_ID=44 GOOGLE_SLIDES_TEMPLATE='<url-or-id>'"; \
 		exit 1; \
 	fi
-	imagegen generate-google-slides --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) $(if $(GOOGLE_SLIDES_TEMPLATE),--template "$(GOOGLE_SLIDES_TEMPLATE)",)
+	imagegen generate-google-slides --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) --template "$(GOOGLE_SLIDES_TEMPLATE)"
 
 generate-animations:
 	@if [ -z "$(EVENT_ID)" ]; then \

@@ -69,7 +69,9 @@ Generate only the PDF slide deck and its PNG pages:
 make generate-slides EVENT_ID=44
 ```
 
-To use a Google Slides presentation as the visual template, create text placeholders such as
+New Google Slides decks copy the configured Cloud Native Linz template and place the generated
+agenda on slide 3 without modifying the source presentation. To use another Google Slides
+presentation as the visual template, create text placeholders such as
 `{{ event.title }}`, `{{ event.date }}`, `{{ event.host }}`, `{{ talks.1.title }}`, and
 `{{ talks.1.speaker }}` in the presentation. Share the template and destination folder with a
 service account as an editor, then point the generator at its JSON key:
@@ -87,6 +89,18 @@ service accounts have no personal storage quota. The presentation URL is saved i
 `artifacts/<event-id>/google-slides.json`. The preview studio can configure the template URL under
 Settings, generate or update the deck, preview it inline, and open it from the Artifact Wall. Set
 `GOOGLE_DRIVE_FOLDER_ID` to the destination folder ID.
+
+### Google Slides Generation Workflow
+
+When using the currently configured My Drive folder:
+
+1. Make a copy of the Google Slides template named `00`.
+2. Move the copy into the folder configured by `GOOGLE_DRIVE_FOLDER_ID`.
+3. Rename the copied presentation to the event ID, for example `49`.
+4. In the preview studio, select that event and click **Generate Google Slides**.
+
+The generator finds the presentation by event ID and populates it with the event data, including
+the agenda on slide 3. Always copy `00`; never rename or edit the original template.
 
 To restrict a service account to one folder, do not enable domain-wide delegation. Share only the
 template and destination folder with the service account's `client_email`, using Editor access, and
