@@ -165,7 +165,7 @@
     <main class="app">
       <section class="top">
         <h1>Studio Settings</h1>
-        <p>Global defaults for social CTA and image generation.</p>
+        <p>Global defaults for social, image, and Google Slides generation.</p>
       </section>
 
       <section class="card">
@@ -199,6 +199,16 @@
               </select>
             </label>
           </div>
+
+          <label>
+            Google Slides template URL or ID
+            <input
+              id="googleSlidesTemplate"
+              type="text"
+              value="{{ settings.google_slides_template }}"
+              placeholder="https://docs.google.com/presentation/d/.../edit"
+            />
+          </label>
         </div>
 
         <div class="actions">
@@ -207,7 +217,7 @@
         </div>
 
         <p id="status" class="status">Ready.</p>
-        <p class="hint">These settings are stored in artifacts/studio-settings.json and used by generation and regeneration endpoints.</p>
+        <p class="hint">Settings are stored in artifacts/studio-settings.json. Google service-account credentials are read from GOOGLE_APPLICATION_CREDENTIALS.</p>
       </section>
     </main>
 
@@ -218,6 +228,7 @@
         ctaRecap: document.getElementById("ctaRecap"),
         width: document.getElementById("width"),
         imageFormat: document.getElementById("imageFormat"),
+        googleSlidesTemplate: document.getElementById("googleSlidesTemplate"),
         btnSave: document.getElementById("btnSave"),
         status: document.getElementById("status"),
       };
@@ -235,6 +246,7 @@
           cta_recap: dom.ctaRecap.value,
           width: widthText ? Number(widthText) : null,
           image_format: dom.imageFormat.value,
+          google_slides_template: dom.googleSlidesTemplate.value.trim(),
         };
 
         const response = await fetch("/api/settings", {

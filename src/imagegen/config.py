@@ -193,6 +193,13 @@ class SlideDeck(BaseModel):
     pdf: str | None = None
 
 
+class GoogleSlideDeck(BaseModel):
+    event_id: int
+    presentation_id: str
+    name: str
+    url: str
+
+
 class AnimationClip(BaseModel):
     name: str
     mp4: str | None = None

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from os import getenv
 from pathlib import Path
 from typing import Annotated
 
@@ -8,6 +9,11 @@ import uvicorn
 
 from .animate import ANIMATION_PRESETS, generate_animations
 from .bundle import generate_event_bundle
+from .google_slides import (
+    GoogleSlidesError,
+    generate_google_slides,
+    google_configuration_value,
+)
 from .loader import find_event, load_events, load_template
 from .renderer import render_event
 from .slides import generate_slide_deck
@@ -158,6 +164,36 @@ def generate_slides(
     for event in selected:
         deck = generate_slide_deck(event, output_dir=out, width=width)
         typer.echo(f"Deck ready: {deck.pdf} ({len(deck.slides)} slides)")
+
+
+@app.command("generate-google-slides")
+def generate_google_slides_command(
+    template: str = typer.Option(
+        "",
+        "--template",
+        help="Google Slides template URL or file ID; defaults to GOOGLE_SLIDES_TEMPLATE_ID",
+    ),
+    id: int | None = typer.Option(None, "--id", help="Single event ID to render"),
+    file: str = typer.Option("_data/events.yml", "--file", help="Path to events YAML"),
+    out: str = typer.Option("artifacts", "--out", help="Output directory"),
+) -> None:
+    resolved_template = template.strip() or getenv("GOOGLE_SLIDES_TEMPLATE_ID", "").strip()
+    if not resolved_template:
+        raise typer.BadParameter("--template or GOOGLE_SLIDES_TEMPLATE_ID is required")
+
+    events = load_events(file)
+    selected = [find_event(events, id)] if id is not None else events
+    for event in selected:
+        try:
+            deck = generate_google_slides(
+                event,
+                template=resolved_template,
+                output_dir=out,
+                folder_id=google_configuration_value("GOOGLE_DRIVE_FOLDER_ID") or None,
+            )
+        except GoogleSlidesError as exc:
+            raise typer.ClickException(str(exc)) from exc
+        typer.echo(f"Google Slides ready: {deck.url}")
 
 
 @app.command("generate-animations")

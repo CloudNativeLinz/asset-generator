@@ -29,3 +29,5 @@ artifacts/*
 
 # Environment variables
 .env
+
+cloudnative-linz-*.json
