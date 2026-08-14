@@ -41,9 +41,9 @@ def _json_body(response: Any) -> dict:
     return json.loads(response.body)
 
 
-def _publish(app: FastAPI, name: str, event_id: int = 32, out: str = "artifacts") -> dict:
+def _publish(app: FastAPI, name: str, event_id: int = 32) -> dict:
     endpoint = _endpoint(app, "/api/publish-image", "POST")
-    payload = PublishImageRequest(id=event_id, name=name, out=out)
+    payload = PublishImageRequest(id=event_id, name=name)
     return _json_body(asyncio.run(endpoint(payload)))
 
 
@@ -190,15 +190,13 @@ def test_publish_image_rejects_unknown_and_traversal_names(
     assert error.value.status_code == status_code
 
 
-def test_publish_image_rejects_output_directories_outside_the_workspace(
-    studio, monkeypatch
-) -> None:
+def test_publish_image_rejects_unknown_events(studio, monkeypatch) -> None:
     monkeypatch.setenv("IMAGEGEN_GITHUB_TOKEN", "studio-token")
 
     with pytest.raises(HTTPException) as error:
-        _publish(studio, "meetup.png", out="/etc")
+        _publish(studio, "meetup.png", event_id=999)
 
-    assert error.value.status_code == 400
+    assert error.value.status_code == 404
 
 
 def test_save_button_is_wired_to_the_publish_endpoint() -> None:

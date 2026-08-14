@@ -79,7 +79,6 @@ class SaveSocialRequest(BaseModel):
 class PublishImageRequest(BaseModel):
     id: int
     name: str
-    out: str = "artifacts"
 
 
 class StudioSettings(BaseModel):
@@ -156,24 +155,23 @@ def _read_json_file(path: Path) -> dict | None:
         return None
 
 
-def _resolve_event_image(out_dir: str, event_id: int, name: str) -> Path:
-    file_name = Path(name).name
-    if not file_name or file_name != name.strip():
+def _resolve_event_image(artifacts_dir: Path, event_id: int, name: str) -> Path:
+    requested = name.strip()
+    if not requested or requested != Path(requested).name:
         raise HTTPException(status_code=400, detail="name must be a plain file name")
-    if Path(file_name).suffix.lower() not in IMAGE_SUFFIXES:
-        raise HTTPException(status_code=400, detail="name must reference an image file")
 
-    root = Path(out_dir).resolve()
-    if not root.is_relative_to(Path.cwd()):
-        raise HTTPException(status_code=400, detail="out must stay inside the working directory")
-
-    event_dir = root / str(event_id)
-    candidate = (event_dir / file_name).resolve()
-    if candidate.parent != event_dir:
-        raise HTTPException(status_code=400, detail="name must stay inside the event directory")
-    if not candidate.exists() or not candidate.is_file():
+    event_dir = artifacts_dir / str(int(event_id))
+    if not event_dir.is_dir():
         raise HTTPException(status_code=404, detail="image not found for this event")
-    return candidate
+
+    for item in sorted(event_dir.iterdir()):
+        if not item.is_file() or item.name != requested:
+            continue
+        if item.suffix.lower() not in IMAGE_SUFFIXES:
+            raise HTTPException(status_code=400, detail="name must reference an image file")
+        return item
+
+    raise HTTPException(status_code=404, detail="image not found for this event")
 
 
 def _bundle_snapshot(event_id: int, out_dir: str = "artifacts") -> dict:
@@ -470,7 +468,7 @@ def create_app(
     @app.post("/api/publish-image")
     async def publish_image_api(payload: PublishImageRequest) -> JSONResponse:
         settings = _load_settings(settings_file)
-        source = _resolve_event_image(payload.out, payload.id, payload.name)
+        source = _resolve_event_image(artifacts_dir, payload.id, payload.name)
 
         try:
             repo_path = build_repository_path(settings.github_path_prefix, payload.id, source.name)
@@ -480,7 +478,7 @@ def create_app(
                 repository=settings.github_repo,
                 branch=settings.github_branch,
                 repo_path=repo_path,
-                message=f"Add generated asset {source.name} for event {payload.id}",
+                message=f"Publish generated asset {source.name} for event {payload.id}",
             )
         except GitHubPublishError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc

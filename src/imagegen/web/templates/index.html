@@ -882,7 +882,6 @@
           const result = await apiPost("/api/publish-image", {
             id: state.eventId,
             name: asset.name,
-            out: "artifacts",
           });
           const target = result.commit_url || result.url || "";
           setStatus(
