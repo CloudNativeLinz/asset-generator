@@ -157,6 +157,25 @@ The studio supports:
 - existing bundle loading and image preview/download
 - Google Slides generation and presentation links
 - persistent CTA, image width, and image format settings
+- per-image "Save to GitHub" commits into a configured repository
+
+### Saving Images To GitHub
+
+Each generated image can be committed to a GitHub repository from the studio. Set a fine-grained
+personal access token with `Contents: write` permission on the target repository before starting the
+studio:
+
+```bash
+export IMAGEGEN_GITHUB_TOKEN="<github-token>"
+```
+
+`GITHUB_TOKEN` is also accepted. The token is only read server-side, is never sent to the browser,
+and is never written to `artifacts/studio-settings.json`. Do not commit it.
+
+The destination repository (`CloudNativeLinz/cloudnativelinz.github.io` by default), branch
+(`main`), and path prefix (`assets/images/events`) are configured on the settings page. Files are
+committed to `<path-prefix>/<event-id>/<file-name>`; saving the same image again updates the
+existing file. Without a configured token the save buttons stay disabled.
 
 ## Azure Container Apps
 

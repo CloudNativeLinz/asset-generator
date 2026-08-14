@@ -14,6 +14,15 @@ from starlette.requests import Request
 
 from ..bundle import generate_event_bundle
 from ..config import CTAVariants
+from ..github_publish import (
+    DEFAULT_GITHUB_BRANCH,
+    DEFAULT_GITHUB_PATH_PREFIX,
+    DEFAULT_GITHUB_REPO,
+    GitHubPublishError,
+    build_repository_path,
+    github_publishing_enabled,
+    publish_file,
+)
 from ..google_slides import (
     DEFAULT_GOOGLE_SLIDES_TEMPLATE,
     GoogleSlidesError,
@@ -24,6 +33,8 @@ from ..loader import find_event, load_events, load_template
 from ..renderer import render_event
 from ..slides import generate_slide_deck
 from ..social import generate_social_bundle
+
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 
 
 class BundleRequest(BaseModel):
@@ -65,6 +76,12 @@ class SaveSocialRequest(BaseModel):
     out: str = "artifacts"
 
 
+class PublishImageRequest(BaseModel):
+    id: int
+    name: str
+    out: str = "artifacts"
+
+
 class StudioSettings(BaseModel):
     cta_register: str = "Reserve your spot today."
     cta_attend: str = "Join us at the meetup and bring your questions."
@@ -72,6 +89,9 @@ class StudioSettings(BaseModel):
     width: int | None = Field(default=None, ge=320)
     image_format: Literal["jpg", "png"] = "jpg"
     google_slides_template: str = DEFAULT_GOOGLE_SLIDES_TEMPLATE
+    github_repo: str = DEFAULT_GITHUB_REPO
+    github_branch: str = DEFAULT_GITHUB_BRANCH
+    github_path_prefix: str = DEFAULT_GITHUB_PATH_PREFIX
 
 
 def _default_settings() -> StudioSettings:
@@ -136,13 +156,33 @@ def _read_json_file(path: Path) -> dict | None:
         return None
 
 
+def _resolve_event_image(out_dir: str, event_id: int, name: str) -> Path:
+    file_name = Path(name).name
+    if not file_name or file_name != name.strip():
+        raise HTTPException(status_code=400, detail="name must be a plain file name")
+    if Path(file_name).suffix.lower() not in IMAGE_SUFFIXES:
+        raise HTTPException(status_code=400, detail="name must reference an image file")
+
+    root = Path(out_dir).resolve()
+    if not root.is_relative_to(Path.cwd()):
+        raise HTTPException(status_code=400, detail="out must stay inside the working directory")
+
+    event_dir = root / str(event_id)
+    candidate = (event_dir / file_name).resolve()
+    if candidate.parent != event_dir:
+        raise HTTPException(status_code=400, detail="name must stay inside the event directory")
+    if not candidate.exists() or not candidate.is_file():
+        raise HTTPException(status_code=404, detail="image not found for this event")
+    return candidate
+
+
 def _bundle_snapshot(event_id: int, out_dir: str = "artifacts") -> dict:
     event_dir = Path(out_dir) / str(event_id)
     images: list[dict] = []
 
     if event_dir.exists() and event_dir.is_dir():
         for item in sorted(event_dir.iterdir()):
-            if item.suffix.lower() not in {".png", ".jpg", ".jpeg", ".webp"}:
+            if item.suffix.lower() not in IMAGE_SUFFIXES:
                 continue
             images.append({"name": item.name, "url": _artifact_url(item.as_posix())})
 
@@ -238,12 +278,23 @@ def create_app(
     @app.get("/api/settings")
     async def get_settings_api() -> JSONResponse:
         settings = _load_settings(settings_file)
-        return JSONResponse({"settings": settings.model_dump()})
+        return JSONResponse(
+            {
+                "settings": settings.model_dump(),
+                "github_enabled": github_publishing_enabled(),
+            }
+        )
 
     @app.post("/api/settings")
     async def save_settings_api(payload: StudioSettings) -> JSONResponse:
         _save_settings(settings_file, payload)
-        return JSONResponse({"saved": True, "settings": payload.model_dump()})
+        return JSONResponse(
+            {
+                "saved": True,
+                "settings": payload.model_dump(),
+                "github_enabled": github_publishing_enabled(),
+            }
+        )
 
     @app.get("/api/events")
     async def list_events_api() -> JSONResponse:
@@ -415,6 +466,26 @@ def create_app(
                 "snapshot": _bundle_snapshot(payload.id, out_dir=payload.out),
             }
         )
+
+    @app.post("/api/publish-image")
+    async def publish_image_api(payload: PublishImageRequest) -> JSONResponse:
+        settings = _load_settings(settings_file)
+        source = _resolve_event_image(payload.out, payload.id, payload.name)
+
+        try:
+            repo_path = build_repository_path(settings.github_path_prefix, payload.id, source.name)
+            result = await run_in_threadpool(
+                publish_file,
+                source,
+                repository=settings.github_repo,
+                branch=settings.github_branch,
+                repo_path=repo_path,
+                message=f"Add generated asset {source.name} for event {payload.id}",
+            )
+        except GitHubPublishError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        return JSONResponse({"published": True, **result})
 
     @app.post("/api/regenerate-social")
     async def regenerate_social_api(payload: RegenerateRequest) -> JSONResponse:
