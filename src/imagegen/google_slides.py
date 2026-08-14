@@ -69,10 +69,6 @@ def resolve_google_access_token(
         credentials_file or google_configuration_value("GOOGLE_APPLICATION_CREDENTIALS")
     ).strip()
     if not key_path:
-        token = getenv("GOOGLE_DRIVE_ACCESS_TOKEN", "").strip()
-        if token:
-            return token
-    if not key_path:
         raise GoogleSlidesError("Set GOOGLE_APPLICATION_CREDENTIALS to a service-account JSON file")
 
     try:
@@ -436,7 +432,6 @@ def generate_google_slides(
     credentials_file: str | None = None,
     output_dir: str = "artifacts",
     folder_id: str | None = None,
-    name: str | None = None,
 ) -> GoogleSlideDeck:
     resolved_access_token = resolve_google_access_token(
         access_token=access_token,
@@ -444,7 +439,7 @@ def generate_google_slides(
     )
 
     template_id = extract_presentation_id(template)
-    presentation_name = name or f"{event.title} - {_text(event.date) or event.id}"
+    presentation_name = f"{event.title} - {_text(event.date) or event.id}"
     copy_payload: dict[str, Any] = {"name": presentation_name}
     if folder_id:
         copy_payload["parents"] = [folder_id]
@@ -493,10 +488,6 @@ def generate_google_slides(
         presentation_id=presentation_id,
         name=presentation_name,
         url=f"https://docs.google.com/presentation/d/{presentation_id}/edit",
-        embed_url=(
-            f"https://docs.google.com/presentation/d/{presentation_id}/embed"
-            "?start=false&loop=false&delayms=3000"
-        ),
     )
     metadata_path = Path(output_dir) / str(event.id) / "google-slides.json"
     metadata_path.parent.mkdir(parents=True, exist_ok=True)

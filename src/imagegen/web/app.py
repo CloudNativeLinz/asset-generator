@@ -18,7 +18,6 @@ from ..google_slides import (
     GoogleSlidesError,
     generate_google_slides,
     google_configuration_value,
-    resolve_google_access_token,
 )
 from ..loader import find_event, load_events, load_template
 from ..renderer import render_event
@@ -342,12 +341,10 @@ def create_app(
         events = load_events(events_file)
         event = find_event(events, payload.id)
         try:
-            access_token = await run_in_threadpool(resolve_google_access_token)
             deck = await run_in_threadpool(
                 generate_google_slides,
                 event,
                 template=settings.google_slides_template,
-                access_token=access_token,
                 output_dir=payload.out,
                 folder_id=google_configuration_value("GOOGLE_DRIVE_FOLDER_ID") or None,
             )

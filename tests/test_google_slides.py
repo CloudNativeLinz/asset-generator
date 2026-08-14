@@ -63,7 +63,6 @@ def test_agenda_items_include_talk_titles_speakers_and_timing() -> None:
 
 
 def test_explicit_access_token_does_not_require_credentials_file(monkeypatch) -> None:
-    monkeypatch.delenv("GOOGLE_DRIVE_ACCESS_TOKEN", raising=False)
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
 
     assert resolve_google_access_token(access_token="token") == "token"
@@ -86,7 +85,6 @@ def test_service_account_credentials_can_be_loaded_from_dotenv(tmp_path: Path, m
         encoding="utf-8",
     )
     monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv("GOOGLE_DRIVE_ACCESS_TOKEN", raising=False)
     monkeypatch.delenv("GOOGLE_APPLICATION_CREDENTIALS", raising=False)
     monkeypatch.setattr("imagegen.google_slides.jwt.encode", lambda *args, **kwargs: "assertion")
 
@@ -113,7 +111,6 @@ def test_service_account_credentials_are_exchanged_automatically(
         encoding="utf-8",
     )
 
-    monkeypatch.delenv("GOOGLE_DRIVE_ACCESS_TOKEN", raising=False)
     monkeypatch.setattr("imagegen.google_slides.jwt.encode", lambda *args, **kwargs: "assertion")
 
     def fake_post(url: str, *, data: dict, timeout: int) -> FakeResponse:
@@ -161,9 +158,6 @@ def test_generate_google_slides_copies_template_and_replaces_text(
 
     assert deck.presentation_id == "generated-presentation"
     assert deck.url.endswith("/generated-presentation/edit")
-    assert deck.embed_url.endswith(
-        "/generated-presentation/embed?start=false&loop=false&delayms=3000"
-    )
     assert requests[0][1]["parents"] == ["destination-folder"]
     replacement_requests = requests[1][1]["requests"]
     assert any(
@@ -177,7 +171,6 @@ def test_generate_google_slides_copies_template_and_replaces_text(
     )
     metadata = json.loads((tmp_path / "32" / "google-slides.json").read_text())
     assert metadata["url"] == deck.url
-    assert metadata["embed_url"] == deck.embed_url
 
 
 def test_generate_google_slides_explains_service_account_quota_failure(

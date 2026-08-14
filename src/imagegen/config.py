@@ -198,7 +198,6 @@ class GoogleSlideDeck(BaseModel):
     presentation_id: str
     name: str
     url: str
-    embed_url: str = ""
 
 
 class AnimationClip(BaseModel):

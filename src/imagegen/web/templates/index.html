@@ -911,7 +911,6 @@
           dom.googleSlidesOpen.href = googleSlides.url;
           dom.googleSlidesName.textContent = googleSlides.name;
           dom.googleSlidesEmbed.src =
-            googleSlides.embed_url ||
             `https://docs.google.com/presentation/d/${encodeURIComponent(googleSlides.presentation_id)}/embed?start=false&loop=false&delayms=3000`;
         } else {
           dom.googleSlidesOpen.removeAttribute("href");

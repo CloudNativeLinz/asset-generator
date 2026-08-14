@@ -81,11 +81,12 @@ make generate-google-slides \
 	GOOGLE_SLIDES_TEMPLATE="https://docs.google.com/presentation/d/<presentation-id>/edit"
 ```
 
-The source presentation is never modified. The generated presentation URL is saved in
+In a Shared Drive, the source presentation is copied and never modified. In a shared My Drive
+folder, pre-create a presentation named with the event ID; the generator updates that file because
+service accounts have no personal storage quota. The presentation URL is saved in
 `artifacts/<event-id>/google-slides.json`. The preview studio can configure the template URL under
-Settings, generate a copy, preview it inline via an embedded iframe, and open it directly from the
-Artifact Wall. Set `GOOGLE_DRIVE_FOLDER_ID` to place generated presentations in a specific Drive
-folder. The legacy `GOOGLE_DRIVE_ACCESS_TOKEN` option remains available for short-lived user OAuth.
+Settings, generate or update the deck, preview it inline, and open it from the Artifact Wall. Set
+`GOOGLE_DRIVE_FOLDER_ID` to the destination folder ID.
 
 To restrict a service account to one folder, do not enable domain-wide delegation. Share only the
 template and destination folder with the service account's `client_email`, using Editor access, and
