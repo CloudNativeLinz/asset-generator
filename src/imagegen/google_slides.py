@@ -493,7 +493,10 @@ def generate_google_slides(
         presentation_id=presentation_id,
         name=presentation_name,
         url=f"https://docs.google.com/presentation/d/{presentation_id}/edit",
-        embed_url=f"https://docs.google.com/presentation/d/{presentation_id}/embed",
+        embed_url=(
+            f"https://docs.google.com/presentation/d/{presentation_id}/embed"
+            "?start=false&loop=false&delayms=3000"
+        ),
     )
     metadata_path = Path(output_dir) / str(event.id) / "google-slides.json"
     metadata_path.parent.mkdir(parents=True, exist_ok=True)

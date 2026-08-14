@@ -538,7 +538,7 @@
             <section class="artifact-section" id="googleSlidesSection" hidden>
               <div class="surface-title">
                 <h3>Google Slides</h3>
-                <a id="googleSlidesOpen" target="_blank" rel="noopener noreferrer">Open presentation</a>
+                <a id="googleSlidesOpen" target="_blank" rel="noopener noreferrer">Edit in Google Slides</a>
               </div>
               <p class="sub" id="googleSlidesName"></p>
               <div class="google-slides-embed">
@@ -910,7 +910,9 @@
         if (googleSlides) {
           dom.googleSlidesOpen.href = googleSlides.url;
           dom.googleSlidesName.textContent = googleSlides.name;
-          dom.googleSlidesEmbed.src = googleSlides.embed_url || `${googleSlides.url}?embedded=true`;
+          dom.googleSlidesEmbed.src =
+            googleSlides.embed_url ||
+            `https://docs.google.com/presentation/d/${encodeURIComponent(googleSlides.presentation_id)}/embed?start=false&loop=false&delayms=3000`;
         } else {
           dom.googleSlidesOpen.removeAttribute("href");
           dom.googleSlidesName.textContent = "";

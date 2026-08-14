@@ -161,7 +161,9 @@ def test_generate_google_slides_copies_template_and_replaces_text(
 
     assert deck.presentation_id == "generated-presentation"
     assert deck.url.endswith("/generated-presentation/edit")
-    assert deck.embed_url.endswith("/generated-presentation/embed")
+    assert deck.embed_url.endswith(
+        "/generated-presentation/embed?start=false&loop=false&delayms=3000"
+    )
     assert requests[0][1]["parents"] == ["destination-folder"]
     replacement_requests = requests[1][1]["requests"]
     assert any(
