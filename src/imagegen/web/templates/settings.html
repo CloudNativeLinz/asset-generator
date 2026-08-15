@@ -209,6 +209,23 @@
               placeholder="https://docs.google.com/presentation/d/.../edit"
             />
           </label>
+
+          <label>
+            GitHub repository (owner/name)
+            <input id="githubRepo" type="text" value="{{ settings.github_repo }}" placeholder="CloudNativeLinz/cloudnativelinz.github.io" />
+          </label>
+
+          <div class="grid-2">
+            <label>
+              GitHub branch
+              <input id="githubBranch" type="text" value="{{ settings.github_branch }}" placeholder="main" />
+            </label>
+
+            <label>
+              GitHub path prefix
+              <input id="githubPathPrefix" type="text" value="{{ settings.github_path_prefix }}" placeholder="assets/images/events" />
+            </label>
+          </div>
         </div>
 
         <div class="actions">
@@ -217,7 +234,7 @@
         </div>
 
         <p id="status" class="status">Ready.</p>
-        <p class="hint">Settings are stored in artifacts/studio-settings.json. Google service-account credentials are read from GOOGLE_APPLICATION_CREDENTIALS.</p>
+        <p class="hint">Settings are stored in artifacts/studio-settings.json. Google service-account credentials are read from GOOGLE_APPLICATION_CREDENTIALS. The GitHub token is read from IMAGEGEN_GITHUB_TOKEN (or GITHUB_TOKEN) and is never stored in settings.</p>
       </section>
     </main>
 
@@ -229,6 +246,9 @@
         width: document.getElementById("width"),
         imageFormat: document.getElementById("imageFormat"),
         googleSlidesTemplate: document.getElementById("googleSlidesTemplate"),
+        githubRepo: document.getElementById("githubRepo"),
+        githubBranch: document.getElementById("githubBranch"),
+        githubPathPrefix: document.getElementById("githubPathPrefix"),
         btnSave: document.getElementById("btnSave"),
         status: document.getElementById("status"),
       };
@@ -247,6 +267,9 @@
           width: widthText ? Number(widthText) : null,
           image_format: dom.imageFormat.value,
           google_slides_template: dom.googleSlidesTemplate.value.trim(),
+          github_repo: dom.githubRepo.value.trim(),
+          github_branch: dom.githubBranch.value.trim(),
+          github_path_prefix: dom.githubPathPrefix.value.trim(),
         };
 
         const response = await fetch("/api/settings", {

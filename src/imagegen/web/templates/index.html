@@ -448,6 +448,28 @@
         color: var(--brand);
       }
 
+      .asset-foot-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .asset-save {
+        border: 1px solid var(--brand);
+        border-radius: 999px;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.72rem;
+        font-family: "IBM Plex Mono", monospace;
+        color: var(--brand);
+        background: transparent;
+        cursor: pointer;
+      }
+
+      .asset-save:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
       .mono {
         font-family: "IBM Plex Mono", monospace;
       }
@@ -595,6 +617,7 @@
       const state = {
         eventId: Number({{ (selected or 0) | tojson }}),
         settings: null,
+        githubEnabled: false,
         social: null,
         snapshot: null,
         assetImages: [],
@@ -688,6 +711,7 @@
       async function loadSettings() {
         const response = await apiGet("/api/settings");
         state.settings = response.settings || null;
+        state.githubEnabled = Boolean(response.github_enabled);
       }
 
       async function loadEventInfo() {
@@ -842,6 +866,36 @@
         openLightbox(next);
       }
 
+      async function publishImage(asset, button) {
+        const settings = state.settings || {};
+        const repository = settings.github_repo || "the configured repository";
+        const branch = settings.github_branch || "main";
+        if (!window.confirm(`Commit ${asset.name} to ${repository} on ${branch}?`)) {
+          return;
+        }
+
+        const originalLabel = button.textContent;
+        button.disabled = true;
+        button.textContent = "Saving...";
+        setStatus(`Saving ${asset.name} to GitHub...`);
+        try {
+          const result = await apiPost("/api/publish-image", {
+            id: state.eventId,
+            name: asset.name,
+          });
+          const target = result.commit_url || result.url || "";
+          setStatus(
+            `${result.updated ? "Updated" : "Committed"} ${result.path} in ${result.repository}${target ? ` (${target})` : ""}.`,
+            true,
+          );
+        } catch (error) {
+          setStatus(`GitHub save failed: ${String(error).slice(0, 240)}`);
+        } finally {
+          button.textContent = originalLabel;
+          button.disabled = !state.githubEnabled;
+        }
+      }
+
       async function renderAssets(snapshot) {
         state.snapshot = snapshot || null;
         dom.artifactGrid.innerHTML = "";
@@ -900,8 +954,24 @@
           link.rel = "noopener noreferrer";
           link.textContent = "Open";
 
+          const actions = document.createElement("div");
+          actions.className = "asset-foot-actions";
+
+          const save = document.createElement("button");
+          save.type = "button";
+          save.className = "asset-save";
+          save.textContent = "Save to GitHub";
+          save.disabled = !state.githubEnabled;
+          save.title = state.githubEnabled
+            ? "Commit this image to the configured GitHub repository"
+            : "Set IMAGEGEN_GITHUB_TOKEN on the server to enable GitHub saving";
+          save.addEventListener("click", () => publishImage(asset, save));
+
+          actions.appendChild(save);
+          actions.appendChild(link);
+
           foot.appendChild(name);
-          foot.appendChild(link);
+          foot.appendChild(actions);
           card.appendChild(image);
           card.appendChild(foot);
           dom.artifactGrid.appendChild(card);
