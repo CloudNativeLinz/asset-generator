@@ -167,15 +167,18 @@ studio:
 
 ```bash
 export IMAGEGEN_GITHUB_TOKEN="<github-token>"
+export DEFAULT_GITHUB_REPO="CloudNativeLinz/cloudnativelinz.github.io"
+export DEFAULT_GITHUB_BRANCH="main"
+export DEFAULT_GITHUB_PATH_PREFIX="assets/images/events"
 ```
 
 `GITHUB_TOKEN` is also accepted. The token is only read server-side, is never sent to the browser,
 and is never written to `artifacts/studio-settings.json`. Do not commit it.
 
-The destination repository (`CloudNativeLinz/cloudnativelinz.github.io` by default), branch
-(`main`), and path prefix (`assets/images/events`) are configured on the settings page. Files are
-committed to `<path-prefix>/<event-id>/<file-name>`; saving the same image again updates the
-existing file. Without a configured token the save buttons stay disabled.
+The environment values provide defaults for the destination repository, branch, and path prefix.
+They can be changed on the settings page. Files are committed to
+`<path-prefix>/<event-id>/<file-name>`; saving the same image again updates the existing file.
+Without a configured token the save buttons stay disabled.
 
 ## Azure Container Apps
 

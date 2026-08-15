@@ -8,9 +8,6 @@ from typing import Any
 import requests
 
 GITHUB_API = "https://api.github.com"
-DEFAULT_GITHUB_REPO = "CloudNativeLinz/cloudnativelinz.github.io"
-DEFAULT_GITHUB_BRANCH = "main"
-DEFAULT_GITHUB_PATH_PREFIX = "assets/images/events"
 GITHUB_TOKEN_VARIABLES = ("IMAGEGEN_GITHUB_TOKEN", "GITHUB_TOKEN")
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
@@ -44,6 +41,11 @@ def _dotenv_value(name: str, path: Path = Path(".env")) -> str:
 
 def github_configuration_value(name: str) -> str:
     return (getenv(name, "") or _dotenv_value(name)).strip()
+
+
+DEFAULT_GITHUB_REPO = github_configuration_value("DEFAULT_GITHUB_REPO")
+DEFAULT_GITHUB_BRANCH = github_configuration_value("DEFAULT_GITHUB_BRANCH") or "main"
+DEFAULT_GITHUB_PATH_PREFIX = github_configuration_value("DEFAULT_GITHUB_PATH_PREFIX")
 
 
 def resolve_github_token(token: str | None = None) -> str:

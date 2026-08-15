@@ -8,6 +8,7 @@ from imagegen import github_publish
 from imagegen.github_publish import (
     GitHubPublishError,
     build_repository_path,
+    github_configuration_value,
     github_publishing_enabled,
     normalize_repository,
     publish_file,
@@ -66,6 +67,15 @@ def test_token_resolution_prefers_imagegen_variable(monkeypatch) -> None:
 
     monkeypatch.setenv("IMAGEGEN_GITHUB_TOKEN", "studio-token")
     assert resolve_github_token() == "studio-token"
+
+
+def test_configuration_prefers_environment_over_dotenv(monkeypatch, tmp_path) -> None:
+    (tmp_path / ".env").write_text("DEFAULT_GITHUB_REPO=dotenv/repo\n", encoding="utf-8")
+
+    assert github_configuration_value("DEFAULT_GITHUB_REPO") == "dotenv/repo"
+
+    monkeypatch.setenv("DEFAULT_GITHUB_REPO", "environment/repo")
+    assert github_configuration_value("DEFAULT_GITHUB_REPO") == "environment/repo"
 
 
 def test_publish_file_creates_new_file(monkeypatch, tmp_path) -> None:

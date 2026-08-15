@@ -31,3 +31,4 @@ artifacts/*
 .env
 
 cloudnative-linz-*.json
+notes.md
