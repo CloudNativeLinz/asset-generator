@@ -43,9 +43,14 @@ def github_configuration_value(name: str) -> str:
     return (getenv(name, "") or _dotenv_value(name)).strip()
 
 
-DEFAULT_GITHUB_REPO = github_configuration_value("DEFAULT_GITHUB_REPO")
+DEFAULT_GITHUB_REPO = (
+    github_configuration_value("DEFAULT_GITHUB_REPO")
+    or "CloudNativeLinz/cloudnativelinz.github.io"
+)
 DEFAULT_GITHUB_BRANCH = github_configuration_value("DEFAULT_GITHUB_BRANCH") or "main"
-DEFAULT_GITHUB_PATH_PREFIX = github_configuration_value("DEFAULT_GITHUB_PATH_PREFIX")
+DEFAULT_GITHUB_PATH_PREFIX = (
+    github_configuration_value("DEFAULT_GITHUB_PATH_PREFIX") or "assets/images/events"
+)
 
 
 def resolve_github_token(token: str | None = None) -> str:

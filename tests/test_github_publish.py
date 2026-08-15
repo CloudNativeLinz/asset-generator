@@ -6,6 +6,9 @@ import pytest
 
 from imagegen import github_publish
 from imagegen.github_publish import (
+    DEFAULT_GITHUB_BRANCH,
+    DEFAULT_GITHUB_PATH_PREFIX,
+    DEFAULT_GITHUB_REPO,
     GitHubPublishError,
     build_repository_path,
     github_configuration_value,
@@ -37,6 +40,12 @@ def _image(tmp_path: Path) -> Path:
     source = tmp_path / "meetup.png"
     source.write_bytes(b"binary-image")
     return source
+
+
+def test_github_destination_has_builtin_fallbacks() -> None:
+    assert DEFAULT_GITHUB_REPO == "CloudNativeLinz/cloudnativelinz.github.io"
+    assert DEFAULT_GITHUB_BRANCH == "main"
+    assert DEFAULT_GITHUB_PATH_PREFIX == "assets/images/events"
 
 
 def test_normalize_repository_requires_owner_and_name() -> None:
