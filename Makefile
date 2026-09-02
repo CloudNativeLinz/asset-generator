@@ -37,7 +37,7 @@ help:
 	@echo "  generate-slides     Generate a slide deck PDF (requires EVENT_ID)"
 	@echo "  generate-google-slides Copy and populate a Google Slides template (requires EVENT_ID)"
 	@echo "  generate-animations Generate animated clips (requires EVENT_ID)"
-	@echo "  run           Start local preview web app"
+	@echo "  web           Start local preview web app"
 	@echo "  azure-deploy  Build and deploy the preview app to Azure Container Apps"
 	@echo "  clean         Remove caches and generated artifacts"
 	@echo ""
@@ -110,7 +110,7 @@ generate-animations:
 run:
 	imagegen preview --template $(TEMPLATE) --file $(EVENTS_FILE) $(if $(EVENT_ID),--id $(EVENT_ID),) --host $(HOST) --port $(PORT)
 
-preview: run
+web: run
 
 azure-deploy:
 	@command -v az >/dev/null 2>&1 || { echo "Azure CLI is required: https://aka.ms/installazureclideb"; exit 1; }
