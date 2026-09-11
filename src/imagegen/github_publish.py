@@ -44,8 +44,7 @@ def github_configuration_value(name: str) -> str:
 
 
 DEFAULT_GITHUB_REPO = (
-    github_configuration_value("DEFAULT_GITHUB_REPO")
-    or "CloudNativeLinz/cloudnativelinz.github.io"
+    github_configuration_value("DEFAULT_GITHUB_REPO") or "CloudNativeLinz/cloudnativelinz.github.io"
 )
 DEFAULT_GITHUB_BRANCH = github_configuration_value("DEFAULT_GITHUB_BRANCH") or "main"
 DEFAULT_GITHUB_PATH_PREFIX = (
