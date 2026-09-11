@@ -205,3 +205,84 @@ def test_save_button_is_wired_to_the_publish_endpoint() -> None:
     assert "async function publishImage(asset, button)" in index_source
     assert 'apiPost("/api/publish-image"' in index_source
     assert "save.disabled = !state.githubEnabled;" in index_source
+
+
+def test_promotion_requests_validate_presets_and_variants() -> None:
+    assert web_app.BundleRequest(id=1).promotion_formats is None
+    assert web_app.BundleRequest(id=1, promotion_formats=[]).promotion_formats == []
+    assert web_app.StudioSettings().width is None
+    with pytest.raises(ValueError):
+        web_app.PromotionsRequest(id=1, presets=["../template"])
+    with pytest.raises(ValueError):
+        web_app.PromotionsRequest(id=1, variant="unknown")
+
+
+def test_promotion_controls_render_registered_formats() -> None:
+    environment = Environment(
+        loader=FileSystemLoader("src/imagegen/web/templates"), autoescape=True
+    )
+    rendered = environment.get_template("index.html").render(
+        events=[],
+        selected=0,
+        template="assets/templates/save-the-date.yaml",
+        speaker_template="assets/templates/speaker.yaml",
+        promotion_formats=web_app.PROMOTION_FORMATS,
+        promotion_variants=web_app.PROMOTION_VARIANTS,
+    )
+    for preset in web_app.PROMOTION_FORMATS:
+        assert f'<option value="{preset}">' in rendered
+    assert 'id="btnGeneratePromotions"' in rendered
+    assert 'apiPost("/api/generate-promotions"' in rendered
+    assert "dom.btnGeneratePromotions.disabled = loading" in rendered
+    assert "download.download = asset.name" in rendered
+
+
+def test_generate_promotions_api_ignores_legacy_width(studio, monkeypatch) -> None:
+    from imagegen.config import PromotionImage
+
+    captured = {}
+
+    def fake_generate(event, **kwargs):
+        captured.update(kwargs)
+        path = Path("artifacts/32/teaser-first-slot.png")
+        path.write_bytes(b"image")
+        return [
+            PromotionImage(
+                preset="teaser", variant="first-slot", path=str(path), width=1166, height=200
+            )
+        ]
+
+    monkeypatch.setattr(web_app, "generate_promotions", fake_generate)
+    web_app._save_settings(
+        Path("artifacts/studio-settings.json"), web_app.StudioSettings(width=900)
+    )
+    endpoint = _endpoint(studio, "/api/generate-promotions", "POST")
+    body = _json_body(
+        asyncio.run(
+            endpoint(web_app.PromotionsRequest(id=32, presets=["teaser"], variant="first-slot"))
+        )
+    )
+    assert captured["presets"] == ["teaser"]
+    assert captured["variant"] == "first-slot"
+    assert "width" not in captured
+    assert body["images"][0]["width"] == 1166
+    assert any(asset.get("preset") == "teaser" for asset in body["snapshot"]["images"])
+
+
+def test_promotion_preview_returns_native_png(studio, monkeypatch) -> None:
+    from io import BytesIO
+
+    from PIL import Image
+
+    monkeypatch.setattr(
+        web_app, "render_promotion", lambda event, preset, variant: Image.new("RGB", (341, 200))
+    )
+    endpoint = _endpoint(studio, "/render-promotion", "GET")
+
+    async def read_response():
+        response = await endpoint(32, "mobile-website", "second-slot")
+        assert response.media_type == "image/png"
+        return b"".join([part async for part in response.body_iterator])
+
+    with Image.open(BytesIO(asyncio.run(read_response()))) as image:
+        assert image.size == (341, 200)

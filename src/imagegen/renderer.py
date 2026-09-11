@@ -159,7 +159,12 @@ def _draw_image_element(
         return
 
     fitted = fit_image(image, element.box.w, element.box.h, element.fit)
-    shaped = apply_shape(fitted, element.shape, corner_radius=element.corner_radius)
+    shaped = apply_shape(
+        fitted,
+        element.shape,
+        corner_radius=element.corner_radius,
+        polygon_points=element.polygon_points,
+    )
     canvas.alpha_composite(shaped, (element.box.x, element.box.y))
 
 

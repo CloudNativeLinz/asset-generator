@@ -2,10 +2,40 @@ from pathlib import Path
 
 from PIL import Image
 
-from imagegen.config import Event
+from imagegen.config import Event, Template
 from imagegen.loader import find_event, load_events, load_template
 from imagegen.renderer import render_event
 from imagegen.text import resolve_font_path
+
+
+def test_render_polygon_image_uses_template_coordinates(tmp_path: Path) -> None:
+    background = tmp_path / "background.png"
+    portrait = tmp_path / "portrait.png"
+    Image.new("RGB", (100, 60), "white").save(background)
+    Image.new("RGB", (40, 60), "red").save(portrait)
+    template = Template.model_validate(
+        {
+            "name": "polygon-test",
+            "background": str(background),
+            "elements": [
+                {
+                    "id": "portrait",
+                    "type": "image",
+                    "source": str(portrait),
+                    "box": {"x": 10, "y": 0, "w": 40, "h": 60},
+                    "shape": "polygon",
+                    "polygon_points": [[10, 0], [40, 0], [30, 60], [0, 60]],
+                }
+            ],
+        }
+    )
+
+    rendered = render_event(template, Event(id=1), output_format="png")
+
+    assert rendered.getpixel((11, 1))[:3] == (255, 255, 255)
+    assert rendered.getpixel((25, 1))[:3] == (255, 0, 0)
+    assert rendered.getpixel((15, 58))[:3] == (255, 0, 0)
+    assert rendered.getpixel((49, 58))[:3] == (255, 255, 255)
 
 
 def test_image_templates_do_not_force_uppercase() -> None:

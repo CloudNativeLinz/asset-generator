@@ -352,13 +352,61 @@
         grid-column: 1 / -1;
       }
 
+      .promotion-controls {
+        border-top: 1px solid var(--line);
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .promotion-controls input[type="checkbox"] {
+        width: auto;
+        margin-right: 0.4rem;
+      }
+
+      .promotion-controls select {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .promotion-preview figure {
+        margin: 0.8rem 0;
+      }
+
+      .promotion-preview img,
+      .asset-card--landscape img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: auto;
+        object-fit: contain;
+      }
+
+      .asset-group {
+        grid-column: 1 / -1;
+        margin: 0.6rem 0 0;
+        font-size: 0.9rem;
+      }
+
+      .asset-card--landscape {
+        grid-column: 1 / -1;
+        min-width: 0;
+      }
+
+      .asset-card--landscape .asset-foot {
+        flex-wrap: wrap;
+        overflow-wrap: anywhere;
+      }
+
       .asset-card img {
         width: 100%;
         border-radius: 8px;
         border: 1px solid #d1d5db;
         background: #f3f4f6;
-        aspect-ratio: 1 / 1;
-        object-fit: cover;
+        aspect-ratio: auto;
+        height: auto;
+        object-fit: contain;
         cursor: zoom-in;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
@@ -537,6 +585,30 @@
             <button id="btnGenerateGoogleSlides" class="btn-secondary" type="button">Generate Google Slides</button>
             <button id="btnLoadSnapshot" class="btn-light" type="button">Load Existing</button>
           </div>
+
+          <div class="promotion-controls">
+            <h3>Landscape Graphics</h3>
+            <label>Canvas
+              <select id="promotionCanvas">
+                <option value="all">All landscape formats</option>
+                {% for preset, label in (promotion_formats | default({})).items() %}
+                <option value="{{ preset }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Announcement stage
+              <select id="promotionVariant">
+                {% for variant, label in (promotion_variants | default({})).items() %}
+                <option value="{{ variant }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label><input id="includePromotions" type="checkbox" checked />Include in image bundles</label>
+            <div class="action-grid">
+              <button id="btnPreviewPromotions" class="btn-light" type="button">Preview</button>
+              <button id="btnGeneratePromotions" class="btn-secondary" type="button">Generate Landscape</button>
+            </div>
+          </div>
           
           <br>Event Info
           <div class="event-meta" id="eventMeta"></div>
@@ -553,6 +625,10 @@
           <p class="sub">Generated images and Google Slides are shown for quick review.</p>
 
           <div class="artifact-surface" id="artifactSurface" aria-busy="false">
+            <section class="artifact-section promotion-preview" id="promotionPreview" hidden>
+              <h3>Landscape Preview</h3>
+              <div id="promotionPreviewImages"></div>
+            </section>
             <section class="artifact-section" id="imageSection" hidden>
               <h3>Images</h3>
               <div class="artifact-grid" id="artifactGrid"></div>
@@ -614,6 +690,8 @@
     </div>
 
     <script>
+      const promotionFormats = {{ (promotion_formats | default({})) | tojson }};
+      const promotionSizes = {{ (promotion_sizes | default({})) | tojson }};
       const state = {
         eventId: Number({{ (selected or 0) | tojson }}),
         settings: null,
@@ -651,6 +729,13 @@
         lightboxImage: document.getElementById("lightboxImage"),
         lightboxCaption: document.getElementById("lightboxCaption"),
         lightboxClose: document.getElementById("lightboxClose"),
+        promotionCanvas: document.getElementById("promotionCanvas"),
+        promotionVariant: document.getElementById("promotionVariant"),
+        includePromotions: document.getElementById("includePromotions"),
+        btnPreviewPromotions: document.getElementById("btnPreviewPromotions"),
+        btnGeneratePromotions: document.getElementById("btnGeneratePromotions"),
+        promotionPreview: document.getElementById("promotionPreview"),
+        promotionPreviewImages: document.getElementById("promotionPreviewImages"),
       };
 
       function setStatus(text, ok = false) {
@@ -669,6 +754,11 @@
         dom.btnGenerateGoogleSlides.disabled =
           loading || !(state.settings?.google_slides_template || "").trim();
         dom.btnLoadSnapshot.disabled = loading;
+        dom.btnPreviewPromotions.disabled = loading;
+        dom.btnGeneratePromotions.disabled = loading;
+        dom.promotionCanvas.disabled = loading;
+        dom.promotionVariant.disabled = loading;
+        dom.includePromotions.disabled = loading;
       }
 
       async function apiGet(url) {
@@ -701,6 +791,8 @@
           out: "artifacts",
           include_social: includeSocial,
           include_slides: false,
+          promotion_formats: dom.includePromotions.checked ? selectedPromotionFormats() : [],
+          promotion_variant: dom.promotionVariant.value,
         };
         if (typeof settings.width === "number") {
           body.width = settings.width;
@@ -712,6 +804,66 @@
         const response = await apiGet("/api/settings");
         state.settings = response.settings || null;
         state.githubEnabled = Boolean(response.github_enabled);
+      }
+
+      function selectedPromotionFormats() {
+        return dom.promotionCanvas.value === "all"
+          ? Object.keys(promotionFormats)
+          : [dom.promotionCanvas.value];
+      }
+
+      function clearPromotionPreview() {
+        dom.promotionPreview.hidden = true;
+        dom.promotionPreviewImages.replaceChildren();
+      }
+
+      async function previewPromotions() {
+        setArtifactsLoading(true, "Rendering landscape preview...");
+        clearPromotionPreview();
+        dom.promotionPreview.hidden = false;
+        try {
+          await Promise.all(selectedPromotionFormats().map((preset) => {
+            const figure = document.createElement("figure");
+            const caption = document.createElement("figcaption");
+            caption.textContent = promotionFormats[preset];
+            const image = document.createElement("img");
+            image.alt = `${promotionFormats[preset]} preview`;
+            [image.width, image.height] = promotionSizes[preset];
+            image.style.maxWidth = `${image.width}px`;
+            figure.append(caption, image);
+            dom.promotionPreviewImages.appendChild(figure);
+            return new Promise((resolve, reject) => {
+              image.onload = resolve;
+              image.onerror = () => reject(new Error(`Could not render ${promotionFormats[preset]}`));
+              const query = new URLSearchParams({
+                id: state.eventId,
+                preset,
+                variant: dom.promotionVariant.value,
+              });
+              image.src = `/render-promotion?${query}`;
+            });
+          }));
+          setStatus("Landscape preview ready.", true);
+        } finally {
+          setArtifactsLoading(false);
+        }
+      }
+
+      async function generateLandscape() {
+        setArtifactsLoading(true, "Generating landscape graphics...");
+        try {
+          const response = await apiPost("/api/generate-promotions", {
+            id: state.eventId,
+            presets: selectedPromotionFormats(),
+            variant: dom.promotionVariant.value,
+            format: state.settings?.image_format || "jpg",
+          });
+          clearPromotionPreview();
+          await renderAssets(response.snapshot);
+          setStatus("Landscape graphics generated.", true);
+        } finally {
+          setArtifactsLoading(false);
+        }
       }
 
       async function loadEventInfo() {
@@ -901,9 +1053,10 @@
         dom.artifactGrid.innerHTML = "";
         const imageLoads = [];
 
-        const images = snapshot?.images || [];
+        const images = [...(snapshot?.images || [])].sort((first, second) =>
+          (first.preset || "").localeCompare(second.preset || ""));
         const googleSlides = snapshot?.google_slides || null;
-        const meetupIndex = images.findIndex((asset) => /(^|[-_])meetup([-.]|$)/i.test(asset.name));
+        const meetupIndex = images.findIndex((asset) => !asset.preset && /(^|[-_])meetup([-.]|$)/i.test(asset.name));
         const orderedImages =
           meetupIndex >= 0
             ? [images[meetupIndex], ...images.slice(0, meetupIndex), ...images.slice(meetupIndex + 1)]
@@ -914,9 +1067,19 @@
         dom.imageSection.hidden = !orderedImages.length;
         dom.googleSlidesSection.hidden = !googleSlides;
 
+        let previousGroup = null;
         orderedImages.forEach((asset, index) => {
+          const group = asset.preset || "social";
+          if (group !== previousGroup) {
+            const heading = document.createElement("h4");
+            heading.className = "asset-group";
+            heading.textContent = asset.label || "Social images";
+            dom.artifactGrid.appendChild(heading);
+            previousGroup = group;
+          }
           const card = document.createElement("div");
           card.className = "asset-card";
+          if (asset.preset) card.classList.add("asset-card--landscape");
 
           const isMeetup = /(^|[-_])meetup([-.]|$)/i.test(asset.name);
           if (isMeetup) {
@@ -925,6 +1088,10 @@
 
           const image = document.createElement("img");
           image.alt = asset.name;
+          if (promotionSizes[asset.preset]) {
+            [image.width, image.height] = promotionSizes[asset.preset];
+            image.style.maxWidth = `${image.width}px`;
+          }
           image.tabIndex = 0;
           imageLoads.push(
             new Promise((resolve) => {
@@ -969,6 +1136,11 @@
 
           actions.appendChild(save);
           actions.appendChild(link);
+          const download = document.createElement("a");
+          download.href = asset.url;
+          download.download = asset.name;
+          download.textContent = "Download";
+          actions.appendChild(download);
 
           foot.appendChild(name);
           foot.appendChild(actions);
@@ -1088,6 +1260,7 @@
       }
 
       async function onEventChange() {
+        clearPromotionPreview();
         setArtifactsLoading(true, "Loading event artifacts...");
         try {
           state.eventId = Number(dom.eventId.value);
@@ -1103,6 +1276,22 @@
       }
 
       dom.eventId.addEventListener("change", onEventChange);
+      dom.promotionCanvas.addEventListener("change", clearPromotionPreview);
+      dom.promotionVariant.addEventListener("change", clearPromotionPreview);
+      dom.btnPreviewPromotions.addEventListener("click", async () => {
+        try {
+          await previewPromotions();
+        } catch (error) {
+          setStatus(`Preview failed: ${String(error).slice(0, 160)}`);
+        }
+      });
+      dom.btnGeneratePromotions.addEventListener("click", async () => {
+        try {
+          await generateLandscape();
+        } catch (error) {
+          setStatus(`Landscape generation failed: ${String(error).slice(0, 160)}`);
+        }
+      });
 
       dom.btnGenerateSocial.addEventListener("click", async () => {
         try {

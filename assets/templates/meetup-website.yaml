@@ -1,0 +1,99 @@
+name: meetup-website
+background: assets/backgrounds/meetup-website.png
+size: {width: 1080, height: 610}
+defaults:
+  font: assets/fonts/DejaVuSans.ttf
+  color: "#FFFFFF"
+  size: 22
+elements:
+  - id: first_portrait
+    type: image
+    source: "{{ slots[0].images[0] if slots[0].images | length == 1 else '' }}"
+    box: {x: 31, y: 163, w: 289, h: 310}
+    shape: polygon
+    polygon_points: [[83, 0], [289, 0], [206, 310], [0, 310]]
+  - id: first_copresenter_a
+    type: image
+    source: "{{ slots[0].images[0] if slots[0].images | length == 2 else '' }}"
+    box: {x: 31, y: 163, w: 186, h: 310}
+    shape: polygon
+    polygon_points: [[83, 0], [186, 0], [103, 310], [0, 310]]
+  - id: first_copresenter_b
+    type: image
+    source: "{{ slots[0].images[1] if slots[0].images | length == 2 else '' }}"
+    box: {x: 134, y: 163, w: 186, h: 310}
+    shape: polygon
+    polygon_points: [[83, 0], [186, 0], [103, 310], [0, 310]]
+  - id: second_portrait
+    type: image
+    source: "{{ slots[1].images[0] if slots[1].images | length == 1 else '' }}"
+    box: {x: 759, y: 163, w: 290, h: 310}
+    shape: polygon
+    polygon_points: [[83, 0], [290, 0], [207, 310], [0, 310]]
+  - id: second_copresenter_a
+    type: image
+    source: "{{ slots[1].images[0] if slots[1].images | length == 2 else '' }}"
+    box: {x: 759, y: 163, w: 187, h: 310}
+    shape: polygon
+    polygon_points: [[83, 0], [187, 0], [104, 310], [0, 310]]
+  - id: second_copresenter_b
+    type: image
+    source: "{{ slots[1].images[1] if slots[1].images | length == 2 else '' }}"
+    box: {x: 863, y: 163, w: 186, h: 310}
+    shape: polygon
+    polygon_points: [[83, 0], [186, 0], [103, 310], [0, 310]]
+  - id: first_speakers
+    type: text
+    value: "{{ slots[0].speaker }}"
+    box: {x: 307, y: 240, w: 482, h: 39}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 27
+    fit: shrink
+  - id: first_title
+    type: text
+    value: "{{ slots[0].title }}"
+    box: {x: 298, y: 281, w: 486, h: 62}
+    wrap: true
+    fit: shrink
+  - id: second_speakers
+    type: text
+    value: "{{ slots[1].speaker }}"
+    box: {x: 278, y: 345, w: 496, h: 39}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 27
+    align: right
+    fit: shrink
+  - id: second_title
+    type: text
+    value: "{{ slots[1].title }}"
+    box: {x: 271, y: 385, w: 497, h: 60}
+    align: right
+    wrap: true
+    fit: shrink
+  - id: date_banner
+    type: rectangle
+    box: {x: 345, y: 449, w: 390, h: 51}
+    color: "#000000"
+  - id: date
+    type: text
+    value: "{{ event.date | date('%B %d, %Y') | default('Date coming soon') }}"
+    box: {x: 353, y: 449, w: 374, h: 51}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 32
+    fit: shrink
+    align: center
+    valign: middle
+  - id: date_time
+    type: text
+    value: "{{ event.date | date('%A, %B %d') }}{% if event.time %} | {{ event.time }}{% endif %}"
+    box: {x: 270, y: 515, w: 540, h: 32}
+    color: "#000000"
+    align: center
+    fit: shrink
+  - id: location
+    type: text
+    value: "{{ event.host | default(event.venue) | default(event.address) }}"
+    box: {x: 170, y: 554, w: 740, h: 34}
+    color: "#000000"
+    align: center
+    fit: shrink

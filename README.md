@@ -32,8 +32,9 @@ The bundle is written to `artifacts/<event-id>/` and contains:
 
 - `meetup.jpg` or `meetup.png`
 - `meetup-diamond.<format>`
-- `speaker-<n>-cutout.<format>`, `speaker-<n>-portrait.<format>`, and
-  `speaker-<n>-diamond.<format>`
+- `meetup-website-<stage>.<format>`, `mobile-website-<stage>.<format>`, and
+	`teaser-<stage>.<format>` at their native sizes
+- `speaker-<n>-portrait.<format>` and `speaker-<n>-diamond.<format>`
 - `social.json` with LinkedIn meetup and talk drafts, CTA variants, post variants, and short-form copy
 - `slides/` with title, agenda, speaker, sponsor, and CTA PNGs
 - `slides.pdf`
@@ -60,6 +61,78 @@ make generate-all TEMPLATE=assets/templates/meetup.yaml
 ```
 
 Use another event source or output directory by setting `EVENTS_FILE` or `OUT_DIR` on any generation target.
+
+## Landscape Graphics
+
+The Canva exports provide three independent layouts, not resized square graphics:
+
+| Canvas | Native Size | Content |
+| --- | --- | --- |
+| `meetup-website` | 1080 x 610 | Branding, two talk slots, portraits, date, time, location |
+| `mobile-website` | 341 x 200 | Two talk slots and portraits, names, date, time, location; no talk titles |
+| `teaser` | 1166 x 200 | Two talk slots and portraits, names, talk titles, date |
+
+Generate all three without generating square images, social copy, or slides:
+
+```bash
+make generate-promotions EVENT_ID=49
+make generate-promotions EVENT_ID=49 CANVAS=meetup-website PROMOTION_VARIANT=save-the-date
+make generate-promotions EVENT_ID=49 CANVAS=mobile-website PROMOTION_VARIANT=second-slot FORMAT=png
+```
+
+`CANVAS` accepts `all` (default) or a canvas ID from the table. `PROMOTION_VARIANT` accepts:
+
+- `auto` (default): show the current lineup in the first two talk slots.
+- `save-the-date`: hide both talks and show the invitation placeholders.
+- `first-slot`: show only `talks[0]`.
+- `second-slot`: show only `talks[1]`; this does not move the first talk to the second slot.
+- `both-slots`: show both slots, leaving placeholders for missing content.
+
+The slot order is preserved, including an empty first talk. These designs have room for two talks;
+additional talks remain in existing per-talk square outputs. One talk can have two co-presenters:
+use speaker names separated by ` & ` or ` and ` and supply their portraits in `talk.images` in the
+same order. This produces the three- and four-person layouts automatically. A single image can
+instead contain both people; multiple photos of a solo speaker do not create extra presenters.
+Missing portraits retain the cloud artwork. Missing dates show "Date coming soon".
+
+Files are written to `artifacts/<event-id>/<canvas>-<stage>.<format>`. An explicit `WIDTH`
+on `generate-promotions` scales proportionally and adds a width suffix to avoid overwriting
+native-size exports. Bundle `WIDTH` and the studio's saved width still apply to legacy outputs;
+landscape images in bundles always retain their native sizes. Existing square filenames are
+unchanged. Use `PROMOTIONS=0` on `generate-bundle` to omit the additional graphics.
+
+In the studio, **Landscape Graphics** selects the canvas and announcement stage. **Preview**
+renders without saving, and **Generate Landscape** writes only the selected landscape images.
+The checkbox includes or excludes the selection from image bundle actions. Downloads are grouped
+by canvas and displayed without square cropping. JPG/PNG continues to use the existing format
+setting. Canvas and announcement-stage selections are local to the current page, not persisted.
+
+### Canva Export Inventory
+
+All 25 exported pages were inspected. Page numbering below is the ZIP's original order.
+
+| Archive | Reusable Background | Finished Examples |
+| --- | --- | --- |
+| Meetup & Website | Page 2, `Save the date (no speaker) - Template.png` | Pages 1 and 3-9 |
+| Mobile Website | Page 2, `Save the date (no speaker) (2).png` | Pages 1 and 3-8 |
+| Teaser | Page 2, `Save the date (no speaker) (2).png` | Pages 1 and 3-8 |
+
+In each archive, page 1 is a populated save-the-date example; pages 3 and 4 demonstrate first-slot
+and second-slot announcements; page 5 has both talks; pages 6 and 7 demonstrate co-presenters in
+the second and first slots; page 8 has two co-presenters in each slot. Their example names, photos,
+titles, and dates are not imported as backgrounds. The Meetup & Website page 9 is a separate
+**Pub Quiz** finished example, not a reusable clean template. A clean export of that artwork is
+needed before adding a dedicated quiz layout.
+
+The original ZIPs remain untouched. Only page 2 from each archive is imported as
+`assets/backgrounds/meetup-website.png`, `mobile-website.png`, and `teaser.png`. Each has a matching
+YAML in `assets/templates/`. The original square template assets remain unchanged.
+
+To add another format, export a clean background, add a native-size YAML with pixel coordinates,
+and register its label/dimensions in `src/imagegen/promotions.py` (`PROMOTION_PRESETS` and the
+`PromotionFormat` literal). The studio derives its menu and preview dimensions from that registry.
+Image elements with `shape: polygon` accept `polygon_points` as pixel coordinates relative to
+their own box, so clipped and slanted frames do not require a new renderer shape per format.
 
 ## Slides And Animations
 
@@ -129,9 +202,10 @@ make generate-bundle EVENT_ID=44 ANIMATIONS="speaker-spotlight event-teaser"
 
 ## Speaker Images
 
-Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a large cutout version and a rounded portrait fallback. Curated transparent PNGs can be placed at `assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example `assets/speaker-cutouts/49-2.png`.
-
-When no curated cutout exists, bundle generation derives a transparent candidate under `artifacts/<event-id>/cutouts/` while preserving the original image for the portrait version.
+Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a rounded portrait card
+and a diamond card. Bundle generation does not create plain `speaker-<n>.png` files,
+`speaker-<n>-cutout.<format>` cards, or intermediate images under `cutouts/`.
+Previously generated files are left untouched.
 
 Bundles also include diamond speaker cards and a diamond meetup banner. A talk with two speaker
 names separated by `&` or `and` uses the two-photo diamond layout. Supply two distinct portraits

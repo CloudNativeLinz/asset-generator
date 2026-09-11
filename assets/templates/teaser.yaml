@@ -1,0 +1,84 @@
+name: teaser
+background: assets/backgrounds/teaser.png
+size: {width: 1166, height: 200}
+defaults:
+  font: assets/fonts/DejaVuSans.ttf
+  color: "#FFFFFF"
+  size: 19
+elements:
+  - id: first_portrait
+    type: image
+    source: "{{ slots[0].images[0] if slots[0].images | length == 1 else '' }}"
+    box: {x: 0, y: 0, w: 318, h: 200}
+    shape: polygon
+    polygon_points: [[0, 0], [318, 0], [267, 200], [0, 200]]
+  - id: first_copresenter_a
+    type: image
+    source: "{{ slots[0].images[0] if slots[0].images | length == 2 else '' }}"
+    box: {x: 0, y: 0, w: 156, h: 200}
+    shape: polygon
+    polygon_points: [[0, 0], [156, 0], [105, 200], [0, 200]]
+  - id: first_copresenter_b
+    type: image
+    source: "{{ slots[0].images[1] if slots[0].images | length == 2 else '' }}"
+    box: {x: 105, y: 0, w: 213, h: 200}
+    shape: polygon
+    polygon_points: [[51, 0], [213, 0], [162, 200], [0, 200]]
+  - id: second_portrait
+    type: image
+    source: "{{ slots[1].images[0] if slots[1].images | length == 1 else '' }}"
+    box: {x: 848, y: 0, w: 318, h: 200}
+    shape: polygon
+    polygon_points: [[51, 0], [318, 0], [318, 200], [0, 200]]
+  - id: second_copresenter_a
+    type: image
+    source: "{{ slots[1].images[0] if slots[1].images | length == 2 else '' }}"
+    box: {x: 848, y: 0, w: 210, h: 200}
+    shape: polygon
+    polygon_points: [[51, 0], [210, 0], [159, 200], [0, 200]]
+  - id: second_copresenter_b
+    type: image
+    source: "{{ slots[1].images[1] if slots[1].images | length == 2 else '' }}"
+    box: {x: 1007, y: 0, w: 159, h: 200}
+    shape: polygon
+    polygon_points: [[51, 0], [159, 0], [159, 200], [0, 200]]
+  - id: first_speakers
+    type: text
+    value: "{{ slots[0].speaker }}"
+    box: {x: 325, y: 12, w: 550, h: 34}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 27
+    fit: shrink
+  - id: first_title
+    type: text
+    value: "{{ slots[0].title }}"
+    box: {x: 315, y: 48, w: 550, h: 44}
+    wrap: true
+    fit: shrink
+  - id: second_speakers
+    type: text
+    value: "{{ slots[1].speaker }}"
+    box: {x: 307, y: 89, w: 553, h: 33}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 27
+    align: right
+    fit: shrink
+  - id: second_title
+    type: text
+    value: "{{ slots[1].title }}"
+    box: {x: 303, y: 124, w: 542, h: 28}
+    align: right
+    fit: shrink
+  - id: date_banner
+    type: rectangle
+    box: {x: 441, y: 154, w: 283, h: 37}
+    color: "#000000"
+  - id: date
+    type: text
+    value: "{{ event.date | date('%B %d, %Y') | default('Date coming soon') }}"
+    box: {x: 447, y: 154, w: 271, h: 37}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 24
+    fit: shrink
+    align: center
+    valign: middle

@@ -13,6 +13,9 @@ FPS ?= 12
 MEETUP_TEMPLATE ?= assets/templates/meetup.yaml
 SPEAKER_TEMPLATE ?= assets/templates/speaker.yaml
 ANIMATIONS ?=
+CANVAS ?= all
+PROMOTION_VARIANT ?= auto
+PROMOTIONS ?= 1
 GOOGLE_SLIDES_TEMPLATE ?= https://docs.google.com/presentation/d/1GPgXC7C3l5c3eJ8dR9TjjY7UDrqSrA3Tn5BmUWK6JQo/edit
 AZURE_APP ?= cloudnative-asset-generator
 AZURE_RESOURCE_GROUP ?= rg-cloudnative-asset-generator
@@ -20,7 +23,7 @@ AZURE_LOCATION ?= swedencentral
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-slides generate-google-slides generate-animations run preview azure-deploy clean
+.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-promotions generate-slides generate-google-slides generate-animations run preview azure-deploy clean
 
 help:
 	@echo "Available targets:"
@@ -34,6 +37,7 @@ help:
 	@echo "  generate      Generate one event image (requires EVENT_ID)"
 	@echo "  generate-all  Generate images for all events"
 	@echo "  generate-bundle     Generate images, social copy, and slides (requires EVENT_ID)"
+	@echo "  generate-promotions Generate native-size landscape graphics (requires EVENT_ID)"
 	@echo "  generate-slides     Generate a slide deck PDF (requires EVENT_ID)"
 	@echo "  generate-google-slides Copy and populate a Google Slides template (requires EVENT_ID)"
 	@echo "  generate-animations Generate animated clips (requires EVENT_ID)"
@@ -45,6 +49,7 @@ help:
 	@echo "  make generate EVENT_ID=44 WIDTH=550 FORMAT=jpg"
 	@echo "  make generate-all EVENTS_FILE=_data/sample-events.yml"
 	@echo "  make generate-bundle EVENT_ID=44 ANIMATIONS='speaker-spotlight event-teaser'"
+	@echo "  make generate-promotions EVENT_ID=44 CANVAS=all PROMOTION_VARIANT=auto"
 	@echo "  make run EVENTS_FILE=_data/sample-events.yml EVENT_ID=52 PORT=8000"
 	@echo "  make azure-deploy AZURE_APP=cloudnative-asset-generator AZURE_RESOURCE_GROUP=rg-cloudnative-asset-generator AZURE_LOCATION=swedencentral"
 
@@ -84,7 +89,14 @@ generate-bundle:
 		echo "EVENT_ID is required. Example: make generate-bundle EVENT_ID=44"; \
 		exit 1; \
 	fi
-	imagegen generate-bundle --template $(MEETUP_TEMPLATE) --speaker-template $(SPEAKER_TEMPLATE) --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) $(if $(WIDTH),--width $(WIDTH),) --format $(FORMAT) $(foreach preset,$(ANIMATIONS),--animation $(preset))
+	imagegen generate-bundle --template $(MEETUP_TEMPLATE) --speaker-template $(SPEAKER_TEMPLATE) --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) $(if $(WIDTH),--width $(WIDTH),) --format $(FORMAT) $(foreach preset,$(ANIMATIONS),--animation $(preset)) --promotion-variant $(PROMOTION_VARIANT) $(if $(filter 0,$(PROMOTIONS)),--no-promotions,)
+
+generate-promotions:
+	@if [ -z "$(EVENT_ID)" ]; then \
+		echo "EVENT_ID is required. Example: make generate-promotions EVENT_ID=44"; \
+		exit 1; \
+	fi
+	imagegen generate-promotions --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) --canvas $(CANVAS) --variant $(PROMOTION_VARIANT) $(if $(WIDTH),--width $(WIDTH),) --format $(FORMAT)
 
 generate-slides:
 	@if [ -z "$(EVENT_ID)" ]; then \

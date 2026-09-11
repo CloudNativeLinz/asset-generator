@@ -145,7 +145,8 @@ def fit_text(
     line_spacing: float,
 ) -> tuple[ImageFont.FreeTypeFont, list[str]]:
     size = start_size
-    while size >= 10:
+    minimum_size = min(10, start_size)
+    while size >= minimum_size:
         font = load_font(font_path, size)
         lines = wrap_text(draw, text, font, box_width) if wrap_enabled else [text]
         total_height = int(len(lines) * line_height(font) * line_spacing)
@@ -155,7 +156,7 @@ def fit_text(
             return font, lines
         size -= 1
 
-    fallback = load_font(font_path, 10)
+    fallback = load_font(font_path, minimum_size)
     final_lines = wrap_text(draw, text, fallback, box_width) if wrap_enabled else [text]
     return fallback, final_lines
 

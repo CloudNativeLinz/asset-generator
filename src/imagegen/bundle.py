@@ -14,8 +14,8 @@ from .config import (
     SlideDeck,
     Talk,
 )
-from .images import generate_speaker_cutout
 from .loader import load_template
+from .promotions import PROMOTION_FORMATS, generate_promotions, promotion_context
 from .renderer import render_event
 from .slides import generate_slide_deck
 from .social import generate_social_bundle
@@ -69,10 +69,17 @@ def generate_event_bundle(
     include_slides: bool = True,
     animation_presets: list[str] | None = None,
     cta_defaults: CTAVariants | None = None,
+    promotion_formats: list[str] | None = None,
+    promotion_variant: str = "auto",
 ) -> GeneratedBundle:
     fmt = output_format.lower()
     if fmt not in {"jpg", "png"}:
         raise ValueError("output_format must be jpg or png")
+    promotion_context(event, promotion_variant)
+    if promotion_formats is not None and any(
+        preset not in PROMOTION_FORMATS for preset in promotion_formats
+    ):
+        raise ValueError("Unknown promotion format")
 
     meetup_template = load_template(meetup_template_path)
     speaker_template = load_template(speaker_template_path)
@@ -99,28 +106,6 @@ def generate_event_bundle(
 
     speaker_paths: list[str] = []
     for index, talk in enumerate(event.talks):
-        if not talk.cutout and talk.image:
-            generated_cutout = generate_speaker_cutout(
-                str(talk.image),
-                event_dir / "cutouts" / f"speaker-{index + 1}.png",
-                Path(".cache/images"),
-            )
-            if generated_cutout is not None:
-                talk.cutout = generated_cutout
-
-        cutout_image = render_event(
-            template=speaker_template,
-            event=event,
-            width=width,
-            output_format=fmt,
-            extra_context={
-                "talk_index": index,
-                "speaker_variant": "cutout" if talk.cutout else "portrait",
-            },
-        )
-        cutout_destination = event_dir / f"speaker-{index + 1}-cutout.{fmt}"
-        speaker_paths.append(_save_image(cutout_image, cutout_destination, fmt))
-
         portrait_image = render_event(
             template=speaker_template,
             event=event,
@@ -148,6 +133,13 @@ def generate_event_bundle(
         diamond_destination = event_dir / f"speaker-{index + 1}-diamond.{fmt}"
         speaker_paths.append(_save_image(diamond_image, diamond_destination, fmt))
 
+    promotions = generate_promotions(
+        event,
+        presets=promotion_formats,
+        variant=promotion_variant,
+        output_dir=output_dir,
+        output_format=fmt,
+    )
     social = generate_social_bundle(event, cta_defaults=cta_defaults) if include_social else None
 
     if social is not None:
@@ -175,6 +167,7 @@ def generate_event_bundle(
             meetup_image=meetup_path,
             meetup_diamond_image=meetup_diamond_path,
             speaker_images=speaker_paths,
+            promotions=promotions,
         ),
         social=social,
         slides=slides,

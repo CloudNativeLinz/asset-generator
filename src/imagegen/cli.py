@@ -15,6 +15,7 @@ from .google_slides import (
     google_configuration_value,
 )
 from .loader import find_event, load_events, load_template
+from .promotions import PROMOTION_FORMATS, PROMOTION_VARIANTS, generate_promotions
 from .renderer import render_event
 from .slides import generate_slide_deck
 from .web.app import create_app
@@ -115,6 +116,10 @@ def generate_bundle(
     format: str = typer.Option("jpg", "--format", help="Output format: jpg or png"),
     no_social: bool = typer.Option(False, "--no-social", help="Skip social copy generation"),
     no_slides: bool = typer.Option(False, "--no-slides", help="Skip slide deck generation"),
+    no_promotions: bool = typer.Option(False, "--no-promotions", help="Skip landscape graphics"),
+    promotion_variant: str = typer.Option(
+        "auto", "--promotion-variant", help="Announcement stage: " + ", ".join(PROMOTION_VARIANTS)
+    ),
     animations: Annotated[
         list[str] | None,
         typer.Option(
@@ -128,6 +133,8 @@ def generate_bundle(
         raise typer.BadParameter("--format must be jpg or png")
 
     selected_animations = list(animations or [])
+    if promotion_variant not in PROMOTION_VARIANTS:
+        raise typer.BadParameter("Unknown --promotion-variant")
 
     for preset in selected_animations:
         if preset not in ANIMATION_PRESETS:
@@ -147,8 +154,40 @@ def generate_bundle(
             include_social=not no_social,
             include_slides=not no_slides,
             animation_presets=selected_animations,
+            promotion_formats=[] if no_promotions else None,
+            promotion_variant=promotion_variant,
         )
         typer.echo(f"Bundle ready at {bundle.output_dir}")
+
+
+@app.command("generate-promotions")
+def generate_promotions_command(
+    id: int = typer.Option(..., "--id", help="Event ID"),
+    file: str = typer.Option("_data/events.yml", "--file", help="Path to events YAML"),
+    out: str = typer.Option("artifacts", "--out", help="Output directory"),
+    canvas: str = typer.Option("all", "--canvas", help="all or " + ", ".join(PROMOTION_FORMATS)),
+    variant: str = typer.Option(
+        "auto", "--variant", help="Announcement stage: " + ", ".join(PROMOTION_VARIANTS)
+    ),
+    width: int | None = typer.Option(None, "--width", min=1, help="Override native output width"),
+    format: str = typer.Option("jpg", "--format", help="Output format: jpg or png"),
+) -> None:
+    if canvas != "all" and canvas not in PROMOTION_FORMATS:
+        raise typer.BadParameter("Unknown --canvas")
+    if variant not in PROMOTION_VARIANTS:
+        raise typer.BadParameter("Unknown --variant")
+    if format.lower() not in {"jpg", "png"}:
+        raise typer.BadParameter("--format must be jpg or png")
+    event = find_event(load_events(file), id)
+    for result in generate_promotions(
+        event,
+        presets=None if canvas == "all" else [canvas],
+        variant=variant,
+        output_dir=out,
+        width=width,
+        output_format=format.lower(),
+    ):
+        typer.echo(f"Rendered {result.path} ({result.width} x {result.height})")
 
 
 @app.command("generate-slides")

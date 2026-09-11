@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import pytest
+from PIL import Image
+
 from imagegen.bundle import _has_two_speakers, generate_event_bundle
-from imagegen.config import Talk
+from imagegen.config import Event, Talk
 from imagegen.loader import find_event, load_events
 
 
@@ -24,13 +27,63 @@ def test_generate_event_bundle_creates_images_and_social(tmp_path: Path, monkeyp
     assert Path(bundle.images.meetup_image).exists()
     assert bundle.images.meetup_diamond_image is not None
     assert Path(bundle.images.meetup_diamond_image).exists()
-    assert len(bundle.images.speaker_images) == len(event.talks) * 3
+    assert len(bundle.images.speaker_images) == len(event.talks) * 2
     assert Path(bundle.output_dir, "meetup-diamond.jpg").exists()
-    assert Path(bundle.output_dir, "speaker-1-cutout.jpg").exists()
+    assert not Path(bundle.output_dir, "speaker-1-cutout.jpg").exists()
     assert Path(bundle.output_dir, "speaker-1-portrait.jpg").exists()
     assert Path(bundle.output_dir, "speaker-1-diamond.jpg").exists()
-    assert Path(bundle.output_dir, "cutouts", "speaker-1.png").exists()
+    assert not Path(bundle.output_dir, "cutouts").exists()
     assert Path(bundle.output_dir, "social.json").exists()
+
+
+@pytest.mark.parametrize("output_format", ["jpg", "png"])
+def test_bundle_generates_only_portrait_and_diamond_speaker_cards(
+    tmp_path: Path, monkeypatch, output_format: str
+) -> None:
+    from imagegen import bundle as bundle_module
+
+    render_contexts: list[dict] = []
+
+    def fake_render(**kwargs) -> Image.Image:
+        render_contexts.append(kwargs.get("extra_context", {}))
+        return Image.new("RGB", (64, 64))
+
+    monkeypatch.setattr(bundle_module, "render_event", fake_render)
+    portrait = tmp_path / "portrait.png"
+    Image.new("RGB", (64, 64), "blue").save(portrait)
+    event = Event(
+        id=1,
+        talks=[
+            Talk(speaker="First", image=str(portrait)),
+            Talk(speaker="Second", image=str(portrait), cutout="curated.png"),
+        ],
+    )
+    original = event.model_dump()
+
+    bundle = generate_event_bundle(
+        event,
+        meetup_template_path="assets/templates/save-the-date.yaml",
+        speaker_template_path="assets/templates/speaker.yaml",
+        output_dir=str(tmp_path),
+        output_format=output_format,
+        include_social=False,
+        include_slides=False,
+        promotion_formats=[],
+    )
+
+    expected_names = {
+        f"speaker-{number}-{variant}.{output_format}"
+        for number in (1, 2)
+        for variant in ("portrait", "diamond")
+    }
+    assert {Path(path).name for path in bundle.images.speaker_images} == expected_names
+    assert {path.name for path in Path(bundle.output_dir).rglob("speaker-*")} == expected_names
+    assert not Path(bundle.output_dir, "cutouts").exists()
+    assert len(render_contexts) == 6
+    assert [
+        context["speaker_variant"] for context in render_contexts if "speaker_variant" in context
+    ] == ["portrait", "portrait"]
+    assert event.model_dump() == original
 
 
 def test_generate_event_bundle_preserves_other_speaker_images(tmp_path: Path, monkeypatch) -> None:
@@ -60,3 +113,27 @@ def test_two_speaker_diamond_selection_uses_speaker_names() -> None:
     assert not _has_two_speakers(
         Talk(speaker="Solo Speaker", images=["first-angle.jpg", "second-angle.jpg"])
     )
+
+
+def test_bundle_adds_native_promotions_without_changing_legacy_width(tmp_path, monkeypatch) -> None:
+    from imagegen import bundle as bundle_module
+
+    monkeypatch.setattr(bundle_module, "render_event", lambda **kwargs: Image.new("RGB", (64, 64)))
+    result = generate_event_bundle(
+        Event(id=1),
+        meetup_template_path="assets/templates/save-the-date.yaml",
+        speaker_template_path="assets/templates/speaker.yaml",
+        output_dir=str(tmp_path),
+        width=64,
+        include_social=False,
+        include_slides=False,
+    )
+    assert Path(result.images.meetup_image).name == "meetup.jpg"
+    assert len(result.images.promotions) == 3
+    assert [(image.width, image.height) for image in result.images.promotions] == [
+        (1080, 610),
+        (341, 200),
+        (1166, 200),
+    ]
+    with Image.open(result.images.meetup_image) as image:
+        assert image.size == (64, 64)

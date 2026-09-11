@@ -30,6 +30,15 @@ from ..google_slides import (
     google_configuration_value,
 )
 from ..loader import find_event, load_events, load_template
+from ..promotions import (
+    PROMOTION_FORMATS,
+    PROMOTION_SIZES,
+    PROMOTION_VARIANTS,
+    PromotionFormat,
+    PromotionVariant,
+    generate_promotions,
+    render_promotion,
+)
 from ..renderer import render_event
 from ..slides import generate_slide_deck
 from ..social import generate_social_bundle
@@ -47,6 +56,16 @@ class BundleRequest(BaseModel):
     include_social: bool = True
     include_slides: bool = True
     animation_presets: list[str] = Field(default_factory=list)
+    promotion_formats: list[PromotionFormat] | None = None
+    promotion_variant: PromotionVariant = "auto"
+
+
+class PromotionsRequest(BaseModel):
+    id: int
+    presets: list[PromotionFormat] | None = None
+    variant: PromotionVariant = "auto"
+    format: Literal["jpg", "png"] | None = None
+    out: str = "artifacts"
 
 
 class SlidesRequest(BaseModel):
@@ -182,7 +201,12 @@ def _bundle_snapshot(event_id: int, out_dir: str = "artifacts") -> dict:
         for item in sorted(event_dir.iterdir()):
             if item.suffix.lower() not in IMAGE_SUFFIXES:
                 continue
-            images.append({"name": item.name, "url": _artifact_url(item.as_posix())})
+            asset = {"name": item.name, "url": _artifact_url(item.as_posix())}
+            for preset, label in PROMOTION_FORMATS.items():
+                if item.name.startswith(preset + "-"):
+                    asset.update({"preset": preset, "label": label})
+                    break
+            images.append(asset)
 
     social = _read_json_file(event_dir / "social-edited.json")
     if social is None:
@@ -259,6 +283,9 @@ def create_app(
                 "speaker_template": "assets/templates/speaker.yaml",
                 "selected": selected,
                 "events_file": events_file,
+                "promotion_formats": PROMOTION_FORMATS,
+                "promotion_sizes": PROMOTION_SIZES,
+                "promotion_variants": PROMOTION_VARIANTS,
             },
         )
 
@@ -345,7 +372,8 @@ def create_app(
 
         events = load_events(events_file)
         event = find_event(events, payload.id)
-        bundle = generate_event_bundle(
+        bundle = await run_in_threadpool(
+            generate_event_bundle,
             event,
             meetup_template_path=payload.template or template_path,
             speaker_template_path=payload.speaker_template,
@@ -356,10 +384,59 @@ def create_app(
             include_slides=payload.include_slides,
             animation_presets=payload.animation_presets,
             cta_defaults=_settings_cta_defaults(settings),
+            promotion_formats=payload.promotion_formats,
+            promotion_variant=payload.promotion_variant,
         )
         response = bundle.model_dump(by_alias=True)
         response["snapshot"] = _bundle_snapshot(event.id, out_dir=payload.out)
         return JSONResponse(response)
+
+    @app.get("/render-promotion")
+    async def preview_promotion(
+        id: int,
+        preset: PromotionFormat = "meetup-website",
+        variant: PromotionVariant = "auto",
+    ) -> StreamingResponse:
+        from io import BytesIO
+
+        def render_preview() -> BytesIO:
+            event = find_event(load_events(events_file), id)
+            image = render_promotion(event, preset, variant)
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            buffer.seek(0)
+            return buffer
+
+        try:
+            buffer = await run_in_threadpool(render_preview)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return StreamingResponse(buffer, media_type="image/png")
+
+    @app.post("/api/generate-promotions")
+    async def generate_promotions_api(payload: PromotionsRequest) -> JSONResponse:
+        settings = _load_settings(settings_file)
+
+        def generate() -> list:
+            event = find_event(load_events(events_file), payload.id)
+            return generate_promotions(
+                event,
+                presets=payload.presets,
+                variant=payload.variant,
+                output_dir=payload.out,
+                output_format=payload.format or settings.image_format,
+            )
+
+        try:
+            images = await run_in_threadpool(generate)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return JSONResponse(
+            {
+                "images": [image.model_dump() for image in images],
+                "snapshot": _bundle_snapshot(payload.id, out_dir=payload.out),
+            }
+        )
 
     @app.post("/api/generate-slides")
     async def generate_slides_api(payload: SlidesRequest) -> JSONResponse:
@@ -431,7 +508,8 @@ def create_app(
 
         events = load_events(events_file)
         event = find_event(events, payload.id)
-        bundle = generate_event_bundle(
+        bundle = await run_in_threadpool(
+            generate_event_bundle,
             event,
             meetup_template_path=payload.template or template_path,
             speaker_template_path=payload.speaker_template,
@@ -440,6 +518,8 @@ def create_app(
             output_format=fmt,
             include_social=False,
             include_slides=False,
+            promotion_formats=payload.promotion_formats,
+            promotion_variant=payload.promotion_variant,
         )
         return JSONResponse(
             {
