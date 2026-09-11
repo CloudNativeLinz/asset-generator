@@ -318,6 +318,21 @@ export AZURE_OPENAI_DEPLOYMENT="<deployment-name>"
 
 Templates are YAML files with a canvas background and ordered `elements`.
 
+Set `background` to an image path, or omit it and provide an explicit `size` plus an optional
+`background_color` (default: white). Missing image paths raise an error; they do not silently
+fall back to a solid color. For example:
+
+```yaml
+name: simple-slide
+size: {width: 1920, height: 1080}
+background_color: "#26272B"
+elements: []
+```
+
+The legacy meetup and slide templates now use solid-color backgrounds and rectangle elements,
+so they no longer depend on the removed legacy background image. The Canva templates continue
+to use their exported PNG backgrounds.
+
 - `type: text` supports Jinja2 `value`, pixel `box`, font styling, alignment, wrapping, and `fit: shrink`.
 - `type: image` supports local or remote Jinja2 `source` values, `cover`, `contain`, `contain-bottom`, or `fill` fitting, and rectangular, rounded, or circular shapes.
 - `type: rectangle` adds a solid-color region.
