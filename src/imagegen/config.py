@@ -104,10 +104,17 @@ class CanvasSize(BaseModel):
 
 class Template(BaseModel):
     name: str
-    background: str
+    background: str | None = None
+    background_color: str = "#FFFFFF"
     size: CanvasSize | None = None
     defaults: TemplateDefaults = Field(default_factory=TemplateDefaults)
     elements: list[TemplateElement]
+
+    @model_validator(mode="after")
+    def validate_canvas_size(self) -> Template:
+        if self.background is None and self.size is None:
+            raise ValueError("Templates without a background image require an explicit size")
+        return self
 
 
 class RenderRequest(BaseModel):

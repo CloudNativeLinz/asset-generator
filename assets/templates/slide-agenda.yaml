@@ -1,5 +1,5 @@
 name: slide-agenda
-background: assets/backgrounds/meetup-background.jpg
+background_color: "#26272B"
 size:
   width: 1920
   height: 1080

@@ -1,5 +1,5 @@
 name: slide-sponsors
-background: assets/backgrounds/meetup-background.jpg
+background_color: "#26272B"
 size:
   width: 1920
   height: 1080
@@ -20,6 +20,11 @@ elements:
     valign: top
     wrap: true
     fit: shrink
+
+  - id: logo_background
+    type: rectangle
+    box: { x: 140, y: 380, w: 1640, h: 300 }
+    color: "#FFFFFF"
 
   - id: host_logo
     type: image
