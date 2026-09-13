@@ -299,7 +299,7 @@
         min-width: 0;
       }
 
-      .comparison-column:first-child {
+      .comparison-column--current {
         position: sticky;
         top: 1rem;
       }
@@ -452,29 +452,6 @@
         grid-column: 1 / -1;
       }
 
-      .promotion-controls {
-        border-top: 1px solid var(--line);
-        margin-top: 1rem;
-        padding-top: 0.75rem;
-        display: grid;
-        gap: 0.6rem;
-      }
-
-      .promotion-controls input[type="checkbox"] {
-        width: auto;
-        margin-right: 0.4rem;
-      }
-
-      .promotion-controls select {
-        min-width: 0;
-        max-width: 100%;
-      }
-
-      .promotion-preview figure {
-        margin: 0.8rem 0;
-      }
-
-      .promotion-preview img,
       .asset-card--landscape img {
         display: block;
         width: 100%;
@@ -645,7 +622,7 @@
           grid-template-columns: 1fr;
         }
 
-        .comparison-column:first-child {
+        .comparison-column--current {
           position: static;
         }
       }
@@ -724,30 +701,6 @@
             <button id="btnLoadSnapshot" class="btn-light" type="button">Load Existing</button>
           </div>
 
-          <div class="promotion-controls" data-workspace="images">
-            <h3>Landscape Graphics</h3>
-            <label>Canvas
-              <select id="promotionCanvas">
-                <option value="all">All landscape formats</option>
-                {% for preset, label in (promotion_formats | default({})).items() %}
-                <option value="{{ preset }}">{{ label }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label>Announcement stage
-              <select id="promotionVariant">
-                {% for variant, label in (promotion_variants | default({})).items() %}
-                <option value="{{ variant }}">{{ label }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label><input id="includePromotions" type="checkbox" checked />Include in image bundles</label>
-            <div class="action-grid">
-              <button id="btnPreviewPromotions" class="btn-light" type="button">Preview</button>
-              <button id="btnGeneratePromotions" class="btn-secondary" type="button">Generate Landscape</button>
-            </div>
-          </div>
-          
           <br>Event Info
           <div class="event-meta" id="eventMeta"></div>
           <br>Talk Info
@@ -762,14 +715,15 @@
           </div>
 
           <div class="artifact-surface" id="artifactSurface" aria-busy="false">
-            <section class="artifact-section promotion-preview" id="promotionPreview" hidden>
-              <h3>Landscape Preview</h3>
-              <div id="promotionPreviewImages"></div>
-            </section>
             <section class="artifact-section" id="imageSection" hidden>
               <h3>Website Image Comparison</h3>
               <div class="comparison-grid">
                 <div class="comparison-column">
+                  <h4>Generated candidates</h4>
+                  <p class="sub" id="generatedImagesEmpty" hidden>No generated images for this event.</p>
+                  <div class="artifact-grid" id="artifactGrid"></div>
+                </div>
+                <div class="comparison-column comparison-column--current">
                   <h4>Currently in use</h4>
                   <article class="asset-card current-asset" id="currentAssetCard">
                     <span class="current-asset-badge">Live website</span>
@@ -780,11 +734,6 @@
                       <a id="currentImageOpen" target="_blank" rel="noopener noreferrer">Open live site</a>
                     </div>
                   </article>
-                </div>
-                <div class="comparison-column">
-                  <h4>Generated candidates</h4>
-                  <p class="sub" id="generatedImagesEmpty" hidden>No generated images for this event.</p>
-                  <div class="artifact-grid" id="artifactGrid"></div>
                 </div>
               </div>
             </section>
@@ -913,13 +862,6 @@
         lightboxImage: document.getElementById("lightboxImage"),
         lightboxCaption: document.getElementById("lightboxCaption"),
         lightboxClose: document.getElementById("lightboxClose"),
-        promotionCanvas: document.getElementById("promotionCanvas"),
-        promotionVariant: document.getElementById("promotionVariant"),
-        includePromotions: document.getElementById("includePromotions"),
-        btnPreviewPromotions: document.getElementById("btnPreviewPromotions"),
-        btnGeneratePromotions: document.getElementById("btnGeneratePromotions"),
-        promotionPreview: document.getElementById("promotionPreview"),
-        promotionPreviewImages: document.getElementById("promotionPreviewImages"),
       };
 
       const workspaceTabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -991,11 +933,6 @@
         dom.btnGenerateGoogleSlides.disabled =
           loading || !(state.settings?.google_slides_template || "").trim();
         dom.btnLoadSnapshot.disabled = loading;
-        dom.btnPreviewPromotions.disabled = loading;
-        dom.btnGeneratePromotions.disabled = loading;
-        dom.promotionCanvas.disabled = loading;
-        dom.promotionVariant.disabled = loading;
-        dom.includePromotions.disabled = loading;
         dom.btnSaveSettings.disabled = loading || state.savingSettings || !state.settings;
         for (const button of document.querySelectorAll(".asset-save")) {
           button.disabled = loading || !state.githubEnabled;
@@ -1032,8 +969,8 @@
           out: "artifacts",
           include_social: includeSocial,
           include_slides: false,
-          promotion_formats: dom.includePromotions.checked ? selectedPromotionFormats() : [],
-          promotion_variant: dom.promotionVariant.value,
+          promotion_formats: Object.keys(promotionFormats),
+          promotion_variant: "auto",
         };
         if (typeof settings.width === "number") {
           body.width = settings.width;
@@ -1096,66 +1033,6 @@
           dom.btnSaveSettings.disabled = state.artifactsLoading;
         }
       });
-
-      function selectedPromotionFormats() {
-        return dom.promotionCanvas.value === "all"
-          ? Object.keys(promotionFormats)
-          : [dom.promotionCanvas.value];
-      }
-
-      function clearPromotionPreview() {
-        dom.promotionPreview.hidden = true;
-        dom.promotionPreviewImages.replaceChildren();
-      }
-
-      async function previewPromotions() {
-        setArtifactsLoading(true, "Rendering landscape preview...");
-        clearPromotionPreview();
-        dom.promotionPreview.hidden = false;
-        try {
-          await Promise.all(selectedPromotionFormats().map((preset) => {
-            const figure = document.createElement("figure");
-            const caption = document.createElement("figcaption");
-            caption.textContent = promotionFormats[preset];
-            const image = document.createElement("img");
-            image.alt = `${promotionFormats[preset]} preview`;
-            [image.width, image.height] = promotionSizes[preset];
-            image.style.maxWidth = `${image.width}px`;
-            figure.append(caption, image);
-            dom.promotionPreviewImages.appendChild(figure);
-            return new Promise((resolve, reject) => {
-              image.onload = resolve;
-              image.onerror = () => reject(new Error(`Could not render ${promotionFormats[preset]}`));
-              const query = new URLSearchParams({
-                id: state.eventId,
-                preset,
-                variant: dom.promotionVariant.value,
-              });
-              image.src = `/render-promotion?${query}`;
-            });
-          }));
-          setStatus("Landscape preview ready.", true);
-        } finally {
-          setArtifactsLoading(false);
-        }
-      }
-
-      async function generateLandscape() {
-        setArtifactsLoading(true, "Generating landscape graphics...");
-        try {
-          const response = await apiPost("/api/generate-promotions", {
-            id: state.eventId,
-            presets: selectedPromotionFormats(),
-            variant: dom.promotionVariant.value,
-            format: state.settings?.image_format || "jpg",
-          });
-          clearPromotionPreview();
-          await renderAssets(response.snapshot);
-          setStatus("Landscape graphics generated.", true);
-        } finally {
-          setArtifactsLoading(false);
-        }
-      }
 
       async function loadEventInfo() {
         const eventId = Number(dom.eventId.value);
@@ -1572,7 +1449,6 @@
       }
 
       async function onEventChange() {
-        clearPromotionPreview();
         setArtifactsLoading(true, "Loading event artifacts...");
         try {
           state.eventId = Number(dom.eventId.value);
@@ -1588,22 +1464,6 @@
       }
 
       dom.eventId.addEventListener("change", onEventChange);
-      dom.promotionCanvas.addEventListener("change", clearPromotionPreview);
-      dom.promotionVariant.addEventListener("change", clearPromotionPreview);
-      dom.btnPreviewPromotions.addEventListener("click", async () => {
-        try {
-          await previewPromotions();
-        } catch (error) {
-          setStatus(`Preview failed: ${String(error).slice(0, 160)}`);
-        }
-      });
-      dom.btnGeneratePromotions.addEventListener("click", async () => {
-        try {
-          await generateLandscape();
-        } catch (error) {
-          setStatus(`Landscape generation failed: ${String(error).slice(0, 160)}`);
-        }
-      });
 
       dom.btnGenerateSocial.addEventListener("click", async () => {
         try {

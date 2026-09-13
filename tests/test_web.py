@@ -388,7 +388,7 @@ def test_promotion_requests_validate_presets_and_variants() -> None:
         web_app.PromotionsRequest(id=1, variant="unknown")
 
 
-def test_promotion_controls_render_registered_formats() -> None:
+def test_main_generation_includes_landscapes_without_separate_controls() -> None:
     environment = Environment(
         loader=FileSystemLoader("src/imagegen/web/templates"), autoescape=True
     )
@@ -400,11 +400,19 @@ def test_promotion_controls_render_registered_formats() -> None:
         promotion_formats=web_app.PROMOTION_FORMATS,
         promotion_variants=web_app.PROMOTION_VARIANTS,
     )
-    for preset in web_app.PROMOTION_FORMATS:
-        assert f'<option value="{preset}">' in rendered
-    assert 'id="btnGeneratePromotions"' in rendered
-    assert 'apiPost("/api/generate-promotions"' in rendered
-    assert "dom.btnGeneratePromotions.disabled = loading" in rendered
+    for control in (
+        "promotionCanvas",
+        "promotionVariant",
+        "includePromotions",
+        "btnPreviewPromotions",
+        "btnGeneratePromotions",
+        "promotionPreview",
+    ):
+        assert control not in rendered
+    assert "Landscape Graphics" not in rendered
+    assert 'id="btnGenerateImages"' in rendered
+    assert "promotion_formats: Object.keys(promotionFormats)" in rendered
+    assert 'promotion_variant: "auto"' in rendered
     assert "download.download = asset.name" in rendered
 
 
