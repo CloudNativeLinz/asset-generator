@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from PIL import Image
 from pydantic import BaseModel, Field, ValidationError
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
@@ -15,11 +18,9 @@ from starlette.requests import Request
 from ..bundle import generate_event_bundle
 from ..config import CTAVariants
 from ..github_publish import (
-    DEFAULT_GITHUB_BRANCH,
-    DEFAULT_GITHUB_PATH_PREFIX,
-    DEFAULT_GITHUB_REPO,
     GitHubPublishError,
-    build_repository_path,
+    build_website_image_path,
+    github_configuration_value,
     github_publishing_enabled,
     publish_file,
 )
@@ -30,11 +31,25 @@ from ..google_slides import (
     google_configuration_value,
 )
 from ..loader import find_event, load_events, load_template
+from ..promotions import (
+    PROMOTION_FORMATS,
+    PROMOTION_SIZES,
+    PROMOTION_VARIANTS,
+    PromotionFormat,
+    PromotionVariant,
+    generate_promotions,
+    render_promotion,
+)
 from ..renderer import render_event
 from ..slides import generate_slide_deck
 from ..social import generate_social_bundle
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+WEBSITE_IMAGE_REPO = (
+    github_configuration_value("WEBSITE_IMAGE_REPO") or "CloudNativeLinz/go-image-generator"
+)
+WEBSITE_IMAGE_BRANCH = github_configuration_value("WEBSITE_IMAGE_BRANCH") or "main"
+WEBSITE_IMAGE_PATH_PREFIX = github_configuration_value("WEBSITE_IMAGE_PATH_PREFIX") or "artifacts"
 
 
 class BundleRequest(BaseModel):
@@ -47,6 +62,16 @@ class BundleRequest(BaseModel):
     include_social: bool = True
     include_slides: bool = True
     animation_presets: list[str] = Field(default_factory=list)
+    promotion_formats: list[PromotionFormat] | None = None
+    promotion_variant: PromotionVariant = "auto"
+
+
+class PromotionsRequest(BaseModel):
+    id: int
+    presets: list[PromotionFormat] | None = None
+    variant: PromotionVariant = "auto"
+    format: Literal["jpg", "png"] | None = None
+    out: str = "artifacts"
 
 
 class SlidesRequest(BaseModel):
@@ -88,9 +113,9 @@ class StudioSettings(BaseModel):
     width: int | None = Field(default=None, ge=320)
     image_format: Literal["jpg", "png"] = "jpg"
     google_slides_template: str = DEFAULT_GOOGLE_SLIDES_TEMPLATE
-    github_repo: str = DEFAULT_GITHUB_REPO
-    github_branch: str = DEFAULT_GITHUB_BRANCH
-    github_path_prefix: str = DEFAULT_GITHUB_PATH_PREFIX
+    github_repo: str = WEBSITE_IMAGE_REPO
+    github_branch: str = WEBSITE_IMAGE_BRANCH
+    github_path_prefix: str = WEBSITE_IMAGE_PATH_PREFIX
 
 
 def _default_settings() -> StudioSettings:
@@ -174,7 +199,9 @@ def _resolve_event_image(artifacts_dir: Path, event_id: int, name: str) -> Path:
     raise HTTPException(status_code=404, detail="image not found for this event")
 
 
-def _bundle_snapshot(event_id: int, out_dir: str = "artifacts") -> dict:
+def _bundle_snapshot(
+    event_id: int, out_dir: str = "artifacts", settings: StudioSettings | None = None
+) -> dict:
     event_dir = Path(out_dir) / str(event_id)
     images: list[dict] = []
 
@@ -182,7 +209,12 @@ def _bundle_snapshot(event_id: int, out_dir: str = "artifacts") -> dict:
         for item in sorted(event_dir.iterdir()):
             if item.suffix.lower() not in IMAGE_SUFFIXES:
                 continue
-            images.append({"name": item.name, "url": _artifact_url(item.as_posix())})
+            asset = {"name": item.name, "url": _artifact_url(item.as_posix())}
+            for preset, label in PROMOTION_FORMATS.items():
+                if item.name.startswith(preset + "-"):
+                    asset.update({"preset": preset, "label": label})
+                    break
+            images.append(asset)
 
     social = _read_json_file(event_dir / "social-edited.json")
     if social is None:
@@ -191,12 +223,49 @@ def _bundle_snapshot(event_id: int, out_dir: str = "artifacts") -> dict:
     return {
         "event_id": event_id,
         "output_dir": event_dir.as_posix(),
+        "current_image": _current_website_image(event_id, settings or _default_settings()),
         "images": images,
         "slides": _slides_snapshot(event_dir),
         "google_slides": _read_json_file(event_dir / "google-slides.json"),
         "animations": _animations_snapshot(event_dir),
         "social": social,
     }
+
+
+def _current_website_image(event_id: int, settings: StudioSettings) -> dict[str, str]:
+    repo_path = build_website_image_path(settings.github_path_prefix, event_id)
+    encoded_path = quote(repo_path, safe="/")
+    return {
+        "name": f"{event_id}.jpg",
+        "url": (
+            f"https://raw.githubusercontent.com/{settings.github_repo}/"
+            f"{settings.github_branch}/{encoded_path}"
+        ),
+        "page_url": "https://cloudnativelinz.at/",
+        "repository": settings.github_repo,
+        "path": repo_path,
+    }
+
+
+def _publish_website_image(source: Path, settings: StudioSettings, event_id: int) -> dict:
+    repo_path = build_website_image_path(settings.github_path_prefix, event_id)
+
+    with Image.open(source) as image, TemporaryDirectory() as temporary_dir:
+        image.load()
+        upload_source = source
+        if image.format != "JPEG":
+            upload_source = Path(temporary_dir) / f"{event_id}.jpg"
+            background = Image.new("RGBA", image.size, "white")
+            background.alpha_composite(image.convert("RGBA"))
+            background.convert("RGB").save(upload_source, format="JPEG", quality=95)
+
+        return publish_file(
+            upload_source,
+            repository=settings.github_repo,
+            branch=settings.github_branch,
+            repo_path=repo_path,
+            message=f"Use generated asset {source.name} for event {event_id}",
+        )
 
 
 def _slides_snapshot(event_dir: Path) -> dict:
@@ -259,19 +328,15 @@ def create_app(
                 "speaker_template": "assets/templates/speaker.yaml",
                 "selected": selected,
                 "events_file": events_file,
+                "promotion_formats": PROMOTION_FORMATS,
+                "promotion_sizes": PROMOTION_SIZES,
+                "promotion_variants": PROMOTION_VARIANTS,
             },
         )
 
-    @app.get("/settings", response_class=HTMLResponse)
-    async def settings_page(request: Request) -> HTMLResponse:
-        settings = _load_settings(settings_file)
-        return templates.TemplateResponse(
-            request=request,
-            name="settings.html",
-            context={
-                "settings": settings.model_dump(),
-            },
-        )
+    @app.get("/settings", response_class=RedirectResponse)
+    async def settings_page() -> RedirectResponse:
+        return RedirectResponse(url="/#settings")
 
     @app.get("/api/settings")
     async def get_settings_api() -> JSONResponse:
@@ -309,7 +374,9 @@ def create_app(
     async def bundle_snapshot_api(
         event_id: int, out: str = Query(default="artifacts")
     ) -> JSONResponse:
-        return JSONResponse(_bundle_snapshot(event_id, out_dir=out))
+        return JSONResponse(
+            _bundle_snapshot(event_id, out_dir=out, settings=_load_settings(settings_file))
+        )
 
     @app.get("/render")
     async def render(
@@ -345,7 +412,8 @@ def create_app(
 
         events = load_events(events_file)
         event = find_event(events, payload.id)
-        bundle = generate_event_bundle(
+        bundle = await run_in_threadpool(
+            generate_event_bundle,
             event,
             meetup_template_path=payload.template or template_path,
             speaker_template_path=payload.speaker_template,
@@ -356,10 +424,59 @@ def create_app(
             include_slides=payload.include_slides,
             animation_presets=payload.animation_presets,
             cta_defaults=_settings_cta_defaults(settings),
+            promotion_formats=payload.promotion_formats,
+            promotion_variant=payload.promotion_variant,
         )
         response = bundle.model_dump(by_alias=True)
-        response["snapshot"] = _bundle_snapshot(event.id, out_dir=payload.out)
+        response["snapshot"] = _bundle_snapshot(event.id, out_dir=payload.out, settings=settings)
         return JSONResponse(response)
+
+    @app.get("/render-promotion")
+    async def preview_promotion(
+        id: int,
+        preset: PromotionFormat = "meetup-website",
+        variant: PromotionVariant = "auto",
+    ) -> StreamingResponse:
+        from io import BytesIO
+
+        def render_preview() -> BytesIO:
+            event = find_event(load_events(events_file), id)
+            image = render_promotion(event, preset, variant)
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            buffer.seek(0)
+            return buffer
+
+        try:
+            buffer = await run_in_threadpool(render_preview)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return StreamingResponse(buffer, media_type="image/png")
+
+    @app.post("/api/generate-promotions")
+    async def generate_promotions_api(payload: PromotionsRequest) -> JSONResponse:
+        settings = _load_settings(settings_file)
+
+        def generate() -> list:
+            event = find_event(load_events(events_file), payload.id)
+            return generate_promotions(
+                event,
+                presets=payload.presets,
+                variant=payload.variant,
+                output_dir=payload.out,
+                output_format=payload.format or settings.image_format,
+            )
+
+        try:
+            images = await run_in_threadpool(generate)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return JSONResponse(
+            {
+                "images": [image.model_dump() for image in images],
+                "snapshot": _bundle_snapshot(payload.id, out_dir=payload.out, settings=settings),
+            }
+        )
 
     @app.post("/api/generate-slides")
     async def generate_slides_api(payload: SlidesRequest) -> JSONResponse:
@@ -375,7 +492,7 @@ def create_app(
             {
                 "event_id": event.id,
                 "slides": deck.model_dump(),
-                "snapshot": _bundle_snapshot(event.id, out_dir=payload.out),
+                "snapshot": _bundle_snapshot(event.id, out_dir=payload.out, settings=settings),
             }
         )
 
@@ -405,7 +522,7 @@ def create_app(
             {
                 "event_id": event.id,
                 "google_slides": deck.model_dump(),
-                "snapshot": _bundle_snapshot(event.id, out_dir=payload.out),
+                "snapshot": _bundle_snapshot(event.id, out_dir=payload.out, settings=settings),
             }
         )
 
@@ -431,7 +548,8 @@ def create_app(
 
         events = load_events(events_file)
         event = find_event(events, payload.id)
-        bundle = generate_event_bundle(
+        bundle = await run_in_threadpool(
+            generate_event_bundle,
             event,
             meetup_template_path=payload.template or template_path,
             speaker_template_path=payload.speaker_template,
@@ -440,12 +558,14 @@ def create_app(
             output_format=fmt,
             include_social=False,
             include_slides=False,
+            promotion_formats=payload.promotion_formats,
+            promotion_variant=payload.promotion_variant,
         )
         return JSONResponse(
             {
                 "event_id": event.id,
                 "images": bundle.images.model_dump(),
-                "snapshot": _bundle_snapshot(event.id, out_dir=payload.out),
+                "snapshot": _bundle_snapshot(event.id, out_dir=payload.out, settings=settings),
             }
         )
 
@@ -461,7 +581,11 @@ def create_app(
             {
                 "saved": True,
                 "path": destination.as_posix(),
-                "snapshot": _bundle_snapshot(payload.id, out_dir=payload.out),
+                "snapshot": _bundle_snapshot(
+                    payload.id,
+                    out_dir=payload.out,
+                    settings=_load_settings(settings_file),
+                ),
             }
         )
 
@@ -471,17 +595,19 @@ def create_app(
         source = _resolve_event_image(artifacts_dir, payload.id, payload.name)
 
         try:
-            repo_path = build_repository_path(settings.github_path_prefix, payload.id, source.name)
             result = await run_in_threadpool(
-                publish_file,
+                _publish_website_image,
                 source,
-                repository=settings.github_repo,
-                branch=settings.github_branch,
-                repo_path=repo_path,
-                message=f"Publish generated asset {source.name} for event {payload.id}",
+                settings,
+                payload.id,
             )
         except GitHubPublishError as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
+        except (OSError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="Unable to read the generated image. Regenerate it and retry.",
+            ) from exc
 
         return JSONResponse({"published": True, **result})
 

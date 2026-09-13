@@ -1,5 +1,5 @@
 name: meetup-default
-background: assets/backgrounds/meetup-background.jpg
+background_color: "#FFFFFF"
 size:
   width: 1920
   height: 1080
@@ -9,6 +9,11 @@ defaults:
   size: 28
 
 elements:
+  - id: header_background
+    type: rectangle
+    box: { x: 0, y: 0, w: 1920, h: 340 }
+    color: "#4355AD"
+
   - id: date
     type: text
     value: "{{ event.date | date('%d %b %Y') }}"

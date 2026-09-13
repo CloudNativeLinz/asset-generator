@@ -1,297 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Studio Settings</title>
-    <style>
-      @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap");
+<form id="settingsForm">
+  <fieldset id="settingsFields" class="settings-fields stack" aria-label="Studio settings" disabled>
+    <label>
+      CTA Register
+      <input id="ctaRegister" name="cta_register" type="text" />
+    </label>
 
-      :root {
-        --bg: #f8fafc;
-        --ink: #1f2937;
-        --muted: #6b7280;
-        --line: #e5e7eb;
-        --panel: #ffffff;
-        --brand: #667eea;
-        --brand-2: #764ba2;
-        --ok: #10b981;
-      }
+    <label>
+      CTA Attend
+      <input id="ctaAttend" name="cta_attend" type="text" />
+    </label>
 
-      * {
-        box-sizing: border-box;
-      }
+    <label>
+      CTA Recap
+      <input id="ctaRecap" name="cta_recap" type="text" />
+    </label>
 
-      body {
-        margin: 0;
-        color: var(--ink);
-        font-family: "Outfit", sans-serif;
-        background:
-          radial-gradient(circle at 8% 12%, rgba(118, 75, 162, 0.22), transparent 35%),
-          radial-gradient(circle at 90% 8%, rgba(102, 126, 234, 0.22), transparent 40%),
-          var(--bg);
-      }
+    <div class="grid-2">
+      <label>
+        Width (optional)
+        <input id="width" name="width" type="number" min="320" step="1" placeholder="1080" />
+      </label>
+      <label>
+        Image format
+        <select id="imageFormat" name="image_format">
+          <option value="jpg">jpg</option>
+          <option value="png">png</option>
+        </select>
+      </label>
+    </div>
 
-      .app {
-        max-width: 860px;
-        margin: 0 auto;
-        padding: 1rem;
-      }
+    <label>
+      Google Slides template URL or ID
+      <input id="googleSlidesTemplate" name="google_slides_template" type="text" placeholder="https://docs.google.com/presentation/d/.../edit" />
+    </label>
 
-      .top {
-        border-radius: 18px;
-        padding: 1rem;
-        background: linear-gradient(120deg, var(--brand) 0%, #5a6fd8 50%, var(--brand-2) 100%);
-        color: #fff;
-        box-shadow: 0 16px 38px rgba(19, 25, 33, 0.25);
-      }
+    <label>
+      Website image repository (owner/name)
+      <input id="githubRepo" name="github_repo" type="text" placeholder="CloudNativeLinz/go-image-generator" />
+    </label>
 
-      .top h1 {
-        margin: 0;
-        font-size: 1.5rem;
-      }
+    <div class="grid-2">
+      <label>
+        GitHub branch
+        <input id="githubBranch" name="github_branch" type="text" placeholder="main" />
+      </label>
+      <label>
+        Website image path
+        <input id="githubPathPrefix" name="github_path_prefix" type="text" placeholder="artifacts" />
+      </label>
+    </div>
+  </fieldset>
 
-      .top p {
-        margin: 0.35rem 0 0;
-        opacity: 0.95;
-      }
-
-      .card {
-        margin-top: 1rem;
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 16px;
-        padding: 1rem;
-        box-shadow: 0 10px 24px rgba(25, 30, 38, 0.08);
-      }
-
-      .grid {
-        display: grid;
-        gap: 0.75rem;
-      }
-
-      .grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-      }
-
-      label {
-        font-family: "IBM Plex Mono", monospace;
-        text-transform: uppercase;
-        font-size: 0.72rem;
-        letter-spacing: 0.03em;
-      }
-
-      input,
-      select {
-        margin-top: 0.35rem;
-        width: 100%;
-        border: 1px solid #d1d5db;
-        border-radius: 10px;
-        padding: 0.6rem 0.65rem;
-        font-family: inherit;
-        font-size: 0.92rem;
-        background: #fff;
-      }
-
-      .actions {
-        display: flex;
-        gap: 0.55rem;
-        flex-wrap: wrap;
-        margin-top: 0.9rem;
-      }
-
-      .btn {
-        border: none;
-        border-radius: 10px;
-        padding: 0.65rem 0.85rem;
-        font-size: 0.78rem;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        font-family: "IBM Plex Mono", monospace;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-        transition: box-shadow 160ms ease, filter 160ms ease, transform 160ms ease;
-      }
-
-      .btn:not(:disabled):hover {
-        box-shadow: 0 6px 14px rgba(25, 30, 38, 0.18);
-        filter: brightness(1.08);
-        transform: translateY(-2px);
-      }
-
-      .btn-primary {
-        color: #fff;
-        background: linear-gradient(130deg, var(--brand), var(--brand-2));
-      }
-
-      .btn-light {
-        color: var(--brand);
-        background: #eef2ff;
-      }
-
-      .status {
-        margin-top: 0.65rem;
-        font-size: 0.85rem;
-        color: var(--muted);
-      }
-
-      .status.ok {
-        color: var(--ok);
-      }
-
-      .hint {
-        margin-top: 0.65rem;
-        color: var(--muted);
-        font-size: 0.82rem;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .btn {
-          transition: none;
-        }
-      }
-
-      @media (max-width: 720px) {
-        .grid-2 {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main class="app">
-      <section class="top">
-        <h1>Studio Settings</h1>
-        <p>Global defaults for social, image, and Google Slides generation.</p>
-      </section>
-
-      <section class="card">
-        <div class="grid">
-          <label>
-            CTA Register
-            <input id="ctaRegister" type="text" value="{{ settings.cta_register }}" />
-          </label>
-
-          <label>
-            CTA Attend
-            <input id="ctaAttend" type="text" value="{{ settings.cta_attend }}" />
-          </label>
-
-          <label>
-            CTA Recap
-            <input id="ctaRecap" type="text" value="{{ settings.cta_recap }}" />
-          </label>
-
-          <div class="grid-2">
-            <label>
-              Width (optional)
-              <input id="width" type="number" min="320" step="1" value="{{ settings.width or '' }}" placeholder="1080" />
-            </label>
-
-            <label>
-              Image format
-              <select id="imageFormat">
-                <option value="jpg" {% if settings.image_format == 'jpg' %}selected{% endif %}>jpg</option>
-                <option value="png" {% if settings.image_format == 'png' %}selected{% endif %}>png</option>
-              </select>
-            </label>
-          </div>
-
-          <label>
-            Google Slides template URL or ID
-            <input
-              id="googleSlidesTemplate"
-              type="text"
-              value="{{ settings.google_slides_template }}"
-              placeholder="https://docs.google.com/presentation/d/.../edit"
-            />
-          </label>
-
-          <label>
-            GitHub repository (owner/name)
-            <input id="githubRepo" type="text" value="{{ settings.github_repo }}" placeholder="CloudNativeLinz/cloudnativelinz.github.io" />
-          </label>
-
-          <div class="grid-2">
-            <label>
-              GitHub branch
-              <input id="githubBranch" type="text" value="{{ settings.github_branch }}" placeholder="main" />
-            </label>
-
-            <label>
-              GitHub path prefix
-              <input id="githubPathPrefix" type="text" value="{{ settings.github_path_prefix }}" placeholder="assets/images/events" />
-            </label>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button id="btnSave" class="btn btn-primary" type="button">Save Settings</button>
-          <a href="/" class="btn btn-light">Back to Wall</a>
-        </div>
-
-        <p id="status" class="status">Ready.</p>
-        <p class="hint">Settings are stored in artifacts/studio-settings.json. Google service-account credentials are read from GOOGLE_APPLICATION_CREDENTIALS. The GitHub token is read from IMAGEGEN_GITHUB_TOKEN (or GITHUB_TOKEN) and is never stored in settings.</p>
-      </section>
-    </main>
-
-    <script>
-      const dom = {
-        ctaRegister: document.getElementById("ctaRegister"),
-        ctaAttend: document.getElementById("ctaAttend"),
-        ctaRecap: document.getElementById("ctaRecap"),
-        width: document.getElementById("width"),
-        imageFormat: document.getElementById("imageFormat"),
-        googleSlidesTemplate: document.getElementById("googleSlidesTemplate"),
-        githubRepo: document.getElementById("githubRepo"),
-        githubBranch: document.getElementById("githubBranch"),
-        githubPathPrefix: document.getElementById("githubPathPrefix"),
-        btnSave: document.getElementById("btnSave"),
-        status: document.getElementById("status"),
-      };
-
-      function setStatus(text, ok = false) {
-        dom.status.textContent = text;
-        dom.status.classList.toggle("ok", ok);
-      }
-
-      async function saveSettings() {
-        const widthText = (dom.width.value || "").trim();
-        const payload = {
-          cta_register: dom.ctaRegister.value,
-          cta_attend: dom.ctaAttend.value,
-          cta_recap: dom.ctaRecap.value,
-          width: widthText ? Number(widthText) : null,
-          image_format: dom.imageFormat.value,
-          google_slides_template: dom.googleSlidesTemplate.value.trim(),
-          github_repo: dom.githubRepo.value.trim(),
-          github_branch: dom.githubBranch.value.trim(),
-          github_path_prefix: dom.githubPathPrefix.value.trim(),
-        };
-
-        const response = await fetch("/api/settings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error(await response.text());
-        }
-      }
-
-      dom.btnSave.addEventListener("click", async () => {
-        try {
-          setStatus("Saving settings...");
-          await saveSettings();
-          setStatus("Settings saved.", true);
-        } catch (error) {
-          setStatus(`Save failed: ${String(error).slice(0, 140)}`);
-        }
-      });
-    </script>
-  </body>
-</html>
+  <div class="inline-actions">
+    <button id="btnSaveSettings" class="btn-primary" type="submit" disabled>Save Settings</button>
+  </div>
+  <p id="settingsStatus" class="status" role="status" aria-live="polite">Loading settings...</p>
+</form>

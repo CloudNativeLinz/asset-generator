@@ -1,17 +1,104 @@
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
-from imagegen.config import Event
+from imagegen.config import Event, Template
 from imagegen.loader import find_event, load_events, load_template
 from imagegen.renderer import render_event
 from imagegen.text import resolve_font_path
+
+
+def test_render_polygon_image_uses_template_coordinates(tmp_path: Path) -> None:
+    background = tmp_path / "background.png"
+    portrait = tmp_path / "portrait.png"
+    Image.new("RGB", (100, 60), "white").save(background)
+    Image.new("RGB", (40, 60), "red").save(portrait)
+    template = Template.model_validate(
+        {
+            "name": "polygon-test",
+            "background": str(background),
+            "elements": [
+                {
+                    "id": "portrait",
+                    "type": "image",
+                    "source": str(portrait),
+                    "box": {"x": 10, "y": 0, "w": 40, "h": 60},
+                    "shape": "polygon",
+                    "polygon_points": [[10, 0], [40, 0], [30, 60], [0, 60]],
+                }
+            ],
+        }
+    )
+
+    rendered = render_event(template, Event(id=1), output_format="png")
+
+    assert rendered.getpixel((11, 1))[:3] == (255, 255, 255)
+    assert rendered.getpixel((25, 1))[:3] == (255, 0, 0)
+    assert rendered.getpixel((15, 58))[:3] == (255, 0, 0)
+    assert rendered.getpixel((49, 58))[:3] == (255, 255, 255)
 
 
 def test_image_templates_do_not_force_uppercase() -> None:
     for template_path in Path("assets/templates").glob("*.yaml"):
         template_source = template_path.read_text(encoding="utf-8")
         assert "| upper" not in template_source, f"{template_path} forces uppercase text"
+
+
+@pytest.mark.parametrize("template_path", sorted(Path("assets/templates").glob("*.yaml")))
+def test_shipped_template_background_is_available(template_path: Path) -> None:
+    template = load_template(str(template_path))
+    if template.background is None:
+        assert template.size is not None, f"{template_path} requires an explicit canvas size"
+        Image.new("RGBA", (1, 1), template.background_color)
+        return
+    background = Path(template.background)
+
+    assert background.is_file(), f"{template_path} references missing background {background}"
+    with Image.open(background) as image:
+        image.verify()
+
+
+@pytest.mark.parametrize("output_format", ["png", "jpg"])
+def test_render_solid_background_without_image(output_format: str) -> None:
+    template = Template.model_validate(
+        {
+            "name": "solid-background",
+            "background_color": "#26272B",
+            "size": {"width": 100, "height": 60},
+            "elements": [
+                {
+                    "id": "header",
+                    "type": "rectangle",
+                    "box": {"x": 0, "y": 0, "w": 100, "h": 20},
+                    "color": "#FFFFFF",
+                }
+            ],
+        }
+    )
+    image = render_event(template, Event(id=1), output_format=output_format)
+
+    assert image.size == (100, 60)
+    assert image.mode == ("RGBA" if output_format == "png" else "RGB")
+    assert image.getpixel((50, 10))[:3] == (255, 255, 255)
+    assert image.getpixel((50, 40))[:3] == (38, 39, 43)
+    resized = render_event(template, Event(id=1), width=50)
+    assert resized.size == (50, 30)
+
+
+def test_solid_background_requires_size() -> None:
+    with pytest.raises(ValueError, match="require an explicit size"):
+        Template(name="missing-size", elements=[])
+
+
+def test_explicit_missing_background_is_not_silently_replaced(tmp_path: Path) -> None:
+    template = Template(
+        name="missing-image",
+        background=str(tmp_path / "missing.png"),
+        elements=[],
+    )
+    with pytest.raises(FileNotFoundError):
+        render_event(template, Event(id=1))
 
 
 def test_render_sample_event(tmp_path: Path) -> None:

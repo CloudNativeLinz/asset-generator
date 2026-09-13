@@ -32,8 +32,9 @@ The bundle is written to `artifacts/<event-id>/` and contains:
 
 - `meetup.jpg` or `meetup.png`
 - `meetup-diamond.<format>`
-- `speaker-<n>-cutout.<format>`, `speaker-<n>-portrait.<format>`, and
-  `speaker-<n>-diamond.<format>`
+- `meetup-website-<stage>.<format>`, `mobile-website-<stage>.<format>`, and
+	`teaser-<stage>.<format>` at their native sizes
+- `speaker-<n>-portrait.<format>` and `speaker-<n>-diamond.<format>`
 - `social.json` with LinkedIn meetup and talk drafts, CTA variants, post variants, and short-form copy
 - `slides/` with title, agenda, speaker, sponsor, and CTA PNGs
 - `slides.pdf`
@@ -60,6 +61,78 @@ make generate-all TEMPLATE=assets/templates/meetup.yaml
 ```
 
 Use another event source or output directory by setting `EVENTS_FILE` or `OUT_DIR` on any generation target.
+
+## Landscape Graphics
+
+The Canva exports provide three independent layouts, not resized square graphics:
+
+| Canvas | Native Size | Content |
+| --- | --- | --- |
+| `meetup-website` | 1080 x 610 | Branding, two talk slots, portraits, date, time, location |
+| `mobile-website` | 341 x 200 | Two talk slots and portraits, names, date, time, location; no talk titles |
+| `teaser` | 1166 x 200 | Two talk slots and portraits, names, talk titles, date |
+
+Generate all three without generating square images, social copy, or slides:
+
+```bash
+make generate-promotions EVENT_ID=49
+make generate-promotions EVENT_ID=49 CANVAS=meetup-website PROMOTION_VARIANT=save-the-date
+make generate-promotions EVENT_ID=49 CANVAS=mobile-website PROMOTION_VARIANT=second-slot FORMAT=png
+```
+
+`CANVAS` accepts `all` (default) or a canvas ID from the table. `PROMOTION_VARIANT` accepts:
+
+- `auto` (default): show the current lineup in the first two talk slots.
+- `save-the-date`: hide both talks and show the invitation placeholders.
+- `first-slot`: show only `talks[0]`.
+- `second-slot`: show only `talks[1]`; this does not move the first talk to the second slot.
+- `both-slots`: show both slots, leaving placeholders for missing content.
+
+The slot order is preserved, including an empty first talk. These designs have room for two talks;
+additional talks remain in existing per-talk square outputs. One talk can have two co-presenters:
+use speaker names separated by ` & ` or ` and ` and supply their portraits in `talk.images` in the
+same order. This produces the three- and four-person layouts automatically. A single image can
+instead contain both people; multiple photos of a solo speaker do not create extra presenters.
+Missing portraits retain the cloud artwork. Missing dates show "Date coming soon".
+
+Files are written to `artifacts/<event-id>/<canvas>-<stage>.<format>`. An explicit `WIDTH`
+on `generate-promotions` scales proportionally and adds a width suffix to avoid overwriting
+native-size exports. Bundle `WIDTH` and the studio's saved width still apply to legacy outputs;
+landscape images in bundles always retain their native sizes. Existing square filenames are
+unchanged. Use `PROMOTIONS=0` on `generate-bundle` to omit the additional graphics.
+
+In the studio, **Landscape Graphics** selects the canvas and announcement stage. **Preview**
+renders without saving, and **Generate Landscape** writes only the selected landscape images.
+The checkbox includes or excludes the selection from image bundle actions. Downloads are grouped
+by canvas and displayed without square cropping. JPG/PNG continues to use the existing format
+setting. Canvas and announcement-stage selections are local to the current page, not persisted.
+
+### Canva Export Inventory
+
+All 25 exported pages were inspected. Page numbering below is the ZIP's original order.
+
+| Archive | Reusable Background | Finished Examples |
+| --- | --- | --- |
+| Meetup & Website | Page 2, `Save the date (no speaker) - Template.png` | Pages 1 and 3-9 |
+| Mobile Website | Page 2, `Save the date (no speaker) (2).png` | Pages 1 and 3-8 |
+| Teaser | Page 2, `Save the date (no speaker) (2).png` | Pages 1 and 3-8 |
+
+In each archive, page 1 is a populated save-the-date example; pages 3 and 4 demonstrate first-slot
+and second-slot announcements; page 5 has both talks; pages 6 and 7 demonstrate co-presenters in
+the second and first slots; page 8 has two co-presenters in each slot. Their example names, photos,
+titles, and dates are not imported as backgrounds. The Meetup & Website page 9 is a separate
+**Pub Quiz** finished example, not a reusable clean template. A clean export of that artwork is
+needed before adding a dedicated quiz layout.
+
+The original ZIPs remain untouched. Only page 2 from each archive is imported as
+`assets/backgrounds/meetup-website.png`, `mobile-website.png`, and `teaser.png`. Each has a matching
+YAML in `assets/templates/`. The original square template assets remain unchanged.
+
+To add another format, export a clean background, add a native-size YAML with pixel coordinates,
+and register its label/dimensions in `src/imagegen/promotions.py` (`PROMOTION_PRESETS` and the
+`PromotionFormat` literal). The studio derives its menu and preview dimensions from that registry.
+Image elements with `shape: polygon` accept `polygon_points` as pixel coordinates relative to
+their own box, so clipped and slanted frames do not require a new renderer shape per format.
 
 ## Slides And Animations
 
@@ -129,9 +202,10 @@ make generate-bundle EVENT_ID=44 ANIMATIONS="speaker-spotlight event-teaser"
 
 ## Speaker Images
 
-Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a large cutout version and a rounded portrait fallback. Curated transparent PNGs can be placed at `assets/speaker-cutouts/<event-id>-<talk-number>.png`, for example `assets/speaker-cutouts/49-2.png`.
-
-When no curated cutout exists, bundle generation derives a transparent candidate under `artifacts/<event-id>/cutouts/` while preserving the original image for the portrait version.
+Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a rounded portrait card
+and a diamond card. Bundle generation does not create plain `speaker-<n>.png` files,
+`speaker-<n>-cutout.<format>` cards, or intermediate images under `cutouts/`.
+Previously generated files are left untouched.
 
 Bundles also include diamond speaker cards and a diamond meetup banner. A talk with two speaker
 names separated by `&` or `and` uses the two-photo diamond layout. Supply two distinct portraits
@@ -157,28 +231,26 @@ The studio supports:
 - existing bundle loading and image preview/download
 - Google Slides generation and presentation links
 - persistent CTA, image width, and image format settings
-- per-image "Save to GitHub" commits into a configured repository
+- side-by-side comparison of the live website image and generated candidates
+- per-image "Use on website" updates of the live event image
 
-### Saving Images To GitHub
+### Selecting The Website Image
 
-Each generated image can be committed to a GitHub repository from the studio. Set a fine-grained
-personal access token with `Contents: write` permission on the target repository before starting the
-studio:
+The studio loads the current event image from the public website asset repository. Any generated
+candidate can replace it with the **Use on website** button. Set a fine-grained personal access
+token with `Contents: write` permission on the target repository before starting the studio:
 
 ```bash
 export IMAGEGEN_GITHUB_TOKEN="<github-token>"
-export DEFAULT_GITHUB_REPO="CloudNativeLinz/cloudnativelinz.github.io"
-export DEFAULT_GITHUB_BRANCH="main"
-export DEFAULT_GITHUB_PATH_PREFIX="assets/images/events"
 ```
 
 `GITHUB_TOKEN` is also accepted. The token is only read server-side, is never sent to the browser,
 and is never written to `artifacts/studio-settings.json`. Do not commit it.
 
-The environment values provide defaults for the destination repository, branch, and path prefix.
-They can be changed on the settings page. Files are committed to
-`<path-prefix>/<event-id>/<file-name>`; saving the same image again updates the existing file.
-Without a configured token the save buttons stay disabled.
+The destination defaults to `CloudNativeLinz/go-image-generator`, branch `main`, and path
+`artifacts`. These values can be changed on the settings tab. The selected image is converted to
+JPEG when necessary and committed to `<path-prefix>/<event-id>.jpg`, matching the URL used by
+cloudnativelinz.at. Without a configured token the selection buttons stay disabled.
 
 ## Azure Container Apps
 
@@ -243,6 +315,21 @@ export AZURE_OPENAI_DEPLOYMENT="<deployment-name>"
 ## Template Format
 
 Templates are YAML files with a canvas background and ordered `elements`.
+
+Set `background` to an image path, or omit it and provide an explicit `size` plus an optional
+`background_color` (default: white). Missing image paths raise an error; they do not silently
+fall back to a solid color. For example:
+
+```yaml
+name: simple-slide
+size: {width: 1920, height: 1080}
+background_color: "#26272B"
+elements: []
+```
+
+The legacy meetup and slide templates now use solid-color backgrounds and rectangle elements,
+so they no longer depend on the removed legacy background image. The Canva templates continue
+to use their exported PNG backgrounds.
 
 - `type: text` supports Jinja2 `value`, pixel `box`, font styling, alignment, wrapping, and `fit: shrink`.
 - `type: image` supports local or remote Jinja2 `source` values, `cover`, `contain`, `contain-bottom`, or `fill` fitting, and rectangular, rounded, or circular shapes.

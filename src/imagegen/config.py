@@ -4,7 +4,7 @@ from datetime import date
 from os import getenv
 from typing import Annotated, Any, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 
 class Talk(BaseModel):
@@ -74,8 +74,17 @@ class ImageElement(BaseElement):
     type: Literal["image"] = "image"
     source: str
     fit: Literal["cover", "contain", "contain-bottom", "fill"] = "cover"
-    shape: Literal["rect", "rounded", "circle", "parallelogram", "parallelogram-pair"] = "rect"
+    shape: Literal[
+        "rect", "rounded", "circle", "parallelogram", "parallelogram-pair", "polygon"
+    ] = "rect"
     corner_radius: int = 24
+    polygon_points: list[tuple[int, int]] | None = Field(default=None, min_length=3)
+
+    @model_validator(mode="after")
+    def validate_polygon(self) -> ImageElement:
+        if self.shape == "polygon" and self.polygon_points is None:
+            raise ValueError("polygon images require at least three polygon_points")
+        return self
 
 
 class RectangleElement(BaseElement):
@@ -95,10 +104,17 @@ class CanvasSize(BaseModel):
 
 class Template(BaseModel):
     name: str
-    background: str
+    background: str | None = None
+    background_color: str = "#FFFFFF"
     size: CanvasSize | None = None
     defaults: TemplateDefaults = Field(default_factory=TemplateDefaults)
     elements: list[TemplateElement]
+
+    @model_validator(mode="after")
+    def validate_canvas_size(self) -> Template:
+        if self.background is None and self.size is None:
+            raise ValueError("Templates without a background image require an explicit size")
+        return self
 
 
 class RenderRequest(BaseModel):
@@ -181,10 +197,19 @@ class SocialContentBundle(BaseModel):
     talks: list[TalkPostDraft] = Field(default_factory=list)
 
 
+class PromotionImage(BaseModel):
+    preset: str
+    variant: str
+    path: str
+    width: int
+    height: int
+
+
 class ImageBundle(BaseModel):
     meetup_image: str | None = None
     meetup_diamond_image: str | None = None
     speaker_images: list[str] = Field(default_factory=list)
+    promotions: list[PromotionImage] = Field(default_factory=list)
 
 
 class SlideDeck(BaseModel):

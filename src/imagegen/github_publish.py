@@ -87,6 +87,14 @@ def build_repository_path(prefix: str, event_id: int, file_name: str) -> str:
     return "/".join(parts)
 
 
+def build_website_image_path(prefix: str, event_id: int) -> str:
+    parts = [part for part in prefix.strip().strip("/").split("/") if part]
+    if any(part == ".." for part in parts):
+        raise GitHubPublishError("Repository path prefix must not contain '..'")
+    parts.append(f"{event_id}.jpg")
+    return "/".join(parts)
+
+
 def _headers(token: str) -> dict[str, str]:
     return {
         "Authorization": f"Bearer {token}",

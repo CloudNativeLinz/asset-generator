@@ -79,14 +79,23 @@ def fit_image(image: Image.Image, width: int, height: int, mode: str) -> Image.I
     return ImageOps.fit(image, (width, height), method=Image.Resampling.LANCZOS)
 
 
-def apply_shape(image: Image.Image, shape: str, corner_radius: int = 24) -> Image.Image:
+def apply_shape(
+    image: Image.Image,
+    shape: str,
+    corner_radius: int = 24,
+    polygon_points: list[tuple[int, int]] | None = None,
+) -> Image.Image:
     if shape == "rect":
         return image
 
     mask = Image.new("L", image.size, 0)
     draw = ImageDraw.Draw(mask)
 
-    if shape == "circle":
+    if shape == "polygon":
+        if not polygon_points or len(polygon_points) < 3:
+            raise ValueError("polygon images require at least three polygon_points")
+        draw.polygon(polygon_points, fill=255)
+    elif shape == "circle":
         draw.ellipse((0, 0, image.width, image.height), fill=255)
     elif shape in {"parallelogram", "parallelogram-pair"}:
         slant = round(image.height * 0.265)

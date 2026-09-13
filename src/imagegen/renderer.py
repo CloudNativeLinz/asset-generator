@@ -159,7 +159,12 @@ def _draw_image_element(
         return
 
     fitted = fit_image(image, element.box.w, element.box.h, element.fit)
-    shaped = apply_shape(fitted, element.shape, corner_radius=element.corner_radius)
+    shaped = apply_shape(
+        fitted,
+        element.shape,
+        corner_radius=element.corner_radius,
+        polygon_points=element.polygon_points,
+    )
     canvas.alpha_composite(shaped, (element.box.x, element.box.y))
 
 
@@ -171,17 +176,23 @@ def render_event(
     cache_dir: str = ".cache/images",
     extra_context: dict[str, Any] | None = None,
 ) -> Image.Image:
-    background = Image.open(template.background).convert("RGBA")
-
-    if template.size is not None:
-        canvas_size = (template.size.width, template.size.height)
-        if background.size != canvas_size:
-            background = background.resize(canvas_size, resample=Image.Resampling.LANCZOS)
+    if template.background is not None:
+        with Image.open(template.background) as source:
+            background = source.convert("RGBA")
+        if template.size is not None:
+            canvas_size = (template.size.width, template.size.height)
+            if background.size != canvas_size:
+                background = background.resize(canvas_size, resample=Image.Resampling.LANCZOS)
+        else:
+            canvas_size = background.size
+        canvas = Image.new("RGBA", canvas_size)
+        canvas.alpha_composite(background)
     else:
-        canvas_size = background.size
-
-    canvas = Image.new("RGBA", canvas_size)
-    canvas.alpha_composite(background)
+        if template.size is None:
+            raise ValueError("Templates without a background image require an explicit size")
+        canvas = Image.new(
+            "RGBA", (template.size.width, template.size.height), template.background_color
+        )
 
     env = _jinja_env()
     context = {"event": _event_context(event), "speaker_variant": "auto"}

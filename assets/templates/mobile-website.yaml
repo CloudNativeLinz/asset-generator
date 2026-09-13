@@ -1,0 +1,88 @@
+name: mobile-website
+background: assets/backgrounds/mobile-website.png
+size: {width: 341, height: 200}
+defaults:
+  font: assets/fonts/DejaVuSans.ttf
+  color: "#FFFFFF"
+  size: 12
+elements:
+  - id: first_portrait
+    type: image
+    source: "{{ slots[0].images[0] if slots[0].images | length == 1 else '' }}"
+    box: {x: 0, y: 0, w: 105, h: 200}
+    shape: polygon
+    polygon_points: [[0, 0], [105, 0], [79, 200], [0, 200]]
+  - id: first_copresenter_a
+    type: image
+    source: "{{ slots[0].images[0] if slots[0].images | length == 2 else '' }}"
+    box: {x: 0, y: 0, w: 53, h: 200}
+    shape: polygon
+    polygon_points: [[0, 0], [53, 0], [27, 200], [0, 200]]
+  - id: first_copresenter_b
+    type: image
+    source: "{{ slots[0].images[1] if slots[0].images | length == 2 else '' }}"
+    box: {x: 27, y: 0, w: 78, h: 200}
+    shape: polygon
+    polygon_points: [[26, 0], [78, 0], [52, 200], [0, 200]]
+  - id: second_portrait
+    type: image
+    source: "{{ slots[1].images[0] if slots[1].images | length == 1 else '' }}"
+    box: {x: 235, y: 0, w: 106, h: 200}
+    shape: polygon
+    polygon_points: [[26, 0], [106, 0], [106, 200], [0, 200]]
+  - id: second_copresenter_a
+    type: image
+    source: "{{ slots[1].images[0] if slots[1].images | length == 2 else '' }}"
+    box: {x: 235, y: 0, w: 77, h: 200}
+    shape: polygon
+    polygon_points: [[26, 0], [77, 0], [51, 200], [0, 200]]
+  - id: second_copresenter_b
+    type: image
+    source: "{{ slots[1].images[1] if slots[1].images | length == 2 else '' }}"
+    box: {x: 286, y: 0, w: 55, h: 200}
+    shape: polygon
+    polygon_points: [[26, 0], [55, 0], [55, 200], [0, 200]]
+  - id: first_speakers
+    type: text
+    value: "{{ slots[0].speaker }}"
+    box: {x: 108, y: 36, w: 137, h: 40}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    wrap: true
+    fit: shrink
+  - id: second_speakers
+    type: text
+    value: "{{ slots[1].speaker }}"
+    box: {x: 101, y: 79, w: 143, h: 44}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    align: right
+    wrap: true
+    fit: shrink
+  - id: date_banner
+    type: rectangle
+    box: {x: 71, y: 135, w: 199, h: 27}
+    color: "#000000"
+  - id: date
+    type: text
+    value: "{{ event.date | date('%B %d, %Y') | default('Date coming soon') }}"
+    box: {x: 75, y: 135, w: 191, h: 27}
+    font: assets/fonts/DejaVuSans-Bold.ttf
+    size: 17
+    fit: shrink
+    align: center
+    valign: middle
+  - id: date_time
+    type: text
+    value: "{{ event.date | date('%a, %b %d') }}{% if event.time %} | {{ event.time }}{% endif %}"
+    box: {x: 89, y: 165, w: 166, h: 15}
+    size: 9
+    color: "#000000"
+    align: center
+    fit: shrink
+  - id: location
+    type: text
+    value: "{{ event.host | default(event.venue) | default(event.address) }}"
+    box: {x: 85, y: 181, w: 170, h: 15}
+    size: 9
+    color: "#000000"
+    align: center
+    fit: shrink
