@@ -231,28 +231,26 @@ The studio supports:
 - existing bundle loading and image preview/download
 - Google Slides generation and presentation links
 - persistent CTA, image width, and image format settings
-- per-image "Save to GitHub" commits into a configured repository
+- side-by-side comparison of the live website image and generated candidates
+- per-image "Use on website" updates of the live event image
 
-### Saving Images To GitHub
+### Selecting The Website Image
 
-Each generated image can be committed to a GitHub repository from the studio. Set a fine-grained
-personal access token with `Contents: write` permission on the target repository before starting the
-studio:
+The studio loads the current event image from the public website asset repository. Any generated
+candidate can replace it with the **Use on website** button. Set a fine-grained personal access
+token with `Contents: write` permission on the target repository before starting the studio:
 
 ```bash
 export IMAGEGEN_GITHUB_TOKEN="<github-token>"
-export DEFAULT_GITHUB_REPO="CloudNativeLinz/cloudnativelinz.github.io"
-export DEFAULT_GITHUB_BRANCH="main"
-export DEFAULT_GITHUB_PATH_PREFIX="assets/images/events"
 ```
 
 `GITHUB_TOKEN` is also accepted. The token is only read server-side, is never sent to the browser,
 and is never written to `artifacts/studio-settings.json`. Do not commit it.
 
-The environment values provide defaults for the destination repository, branch, and path prefix.
-They can be changed on the settings page. Files are committed to
-`<path-prefix>/<event-id>/<file-name>`; saving the same image again updates the existing file.
-Without a configured token the save buttons stay disabled.
+The destination defaults to `CloudNativeLinz/go-image-generator`, branch `main`, and path
+`artifacts`. These values can be changed on the settings tab. The selected image is converted to
+JPEG when necessary and committed to `<path-prefix>/<event-id>.jpg`, matching the URL used by
+cloudnativelinz.at. Without a configured token the selection buttons stay disabled.
 
 ## Azure Container Apps
 

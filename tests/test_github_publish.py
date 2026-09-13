@@ -11,6 +11,7 @@ from imagegen.github_publish import (
     DEFAULT_GITHUB_REPO,
     GitHubPublishError,
     build_repository_path,
+    build_website_image_path,
     github_configuration_value,
     github_publishing_enabled,
     normalize_repository,
@@ -63,6 +64,13 @@ def test_build_repository_path_joins_event_and_file() -> None:
 
     with pytest.raises(GitHubPublishError):
         build_repository_path("assets/../../etc", 44, "meetup.png")
+
+
+def test_build_website_image_path_uses_live_site_name() -> None:
+    assert build_website_image_path("/artifacts/", 50) == "artifacts/50.jpg"
+
+    with pytest.raises(GitHubPublishError):
+        build_website_image_path("artifacts/../etc", 50)
 
 
 def test_token_resolution_prefers_imagegen_variable(monkeypatch) -> None:
