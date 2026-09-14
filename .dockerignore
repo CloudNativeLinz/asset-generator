@@ -13,3 +13,4 @@ tests
 *.log
 *.py[cod]
 .env
+cloudnative-linz-*.json
