@@ -101,11 +101,11 @@ native-size exports. Bundle `WIDTH` and the studio's saved width still apply to 
 landscape images in bundles always retain their native sizes. Existing square filenames are
 unchanged. Use `PROMOTIONS=0` on `generate-bundle` to omit the additional graphics.
 
-In the studio, **Landscape Graphics** selects the canvas and announcement stage. **Preview**
-renders without saving, and **Generate Landscape** writes only the selected landscape images.
-The checkbox includes or excludes the selection from image bundle actions. Downloads are grouped
-by canvas and displayed without square cropping. JPG/PNG continues to use the existing format
-setting. Canvas and announcement-stage selections are local to the current page, not persisted.
+In the studio, **Generate Images** always renders all three canvases with the `auto` variant and
+lists them on the Artifact Wall, grouped by canvas and displayed without square cropping. Variant
+selection is CLI-only; use `make generate-promotions PROMOTION_VARIANT=...` for the other stages.
+The `/render-promotion` and `/api/generate-promotions` endpoints remain available for scripted
+previews. JPG/PNG follows the studio's saved image format setting.
 
 ### Canva Export Inventory
 
@@ -222,17 +222,35 @@ make run EVENT_ID=44
 
 Open <http://localhost:8000>. Override `HOST`, `PORT`, `EVENTS_FILE`, or `TEMPLATE` through Make variables when needed.
 
-The studio supports:
+The studio is organised as four tabs - **Images**, **Social Texts**, **Google Slides**, and
+**Settings** - next to a persistent **Control Deck**. The active tab is stored in the URL hash
+(`#images`, `#social`, `#slides`, `#settings`), so a view can be bookmarked or shared. `/settings`
+redirects to `#settings`.
 
-- social-only, image-only, and combined generation actions
-- editable meetup and per-talk LinkedIn drafts
-- meetup and individual talk regeneration
-- edited draft storage in `artifacts/<event-id>/social-edited.json`
-- existing bundle loading and image preview/download
-- Google Slides generation and presentation links
-- persistent CTA, image width, and image format settings
-- side-by-side comparison of the live website image and generated candidates
-- per-image "Use on website" updates of the live event image
+**Control Deck** is visible on every tab except Settings. It selects the event, shows its title,
+date, host, and talk list, and reports progress in a status line. Its generation buttons follow the
+active tab: **Generate Images**, **Generate Social** and **Generate Social & Images**, or
+**Generate Google Slides** (disabled until a template is configured). **Load Existing** is always
+available and re-reads `artifacts/<event-id>/` without regenerating anything.
+
+**Images** shows the Artifact Wall as a side-by-side comparison: generated candidates on the left,
+the image currently live on cloudnativelinz.at on the right. Candidates are grouped into square
+social images and the landscape canvases, each with **Use on website**, **Open**, and **Download**.
+Clicking an image opens a lightbox; Escape closes it and the arrow keys cycle through all images.
+
+**Social Texts** holds the editable meetup announcement and one draft per talk, each with its own
+regenerate button. **Save Drafts** writes the edited copy to
+`artifacts/<event-id>/social-edited.json`, which takes precedence over `social.json` when the
+studio reloads a bundle.
+
+**Google Slides** generates or updates the configured presentation, links to it, and embeds a live
+preview.
+
+**Settings** persists CTA defaults, image width, image format, the Google Slides template, and the
+website image repository, branch, and path to `artifacts/studio-settings.json`.
+
+PDF slide decks and animations are not generated or displayed in the studio. Use
+`make generate-slides` and `make generate-animations` for those outputs.
 
 ### Selecting The Website Image
 
