@@ -25,6 +25,7 @@ def test_speaker_spotlight_emits_gif_per_talk(tmp_path: Path) -> None:
         assert clip.gif is not None
         gif_path = Path(clip.gif)
         assert gif_path.exists()
+        assert gif_path.name.startswith(f"{event.id}-")
         with Image.open(gif_path) as img:
             assert getattr(img, "is_animated", False)
 
@@ -40,7 +41,9 @@ def test_event_teaser_emits_single_clip(tmp_path: Path) -> None:
     )
 
     assert len(bundle.clips) == 1
-    assert Path(bundle.clips[0].gif).exists()
+    gif_path = Path(bundle.clips[0].gif)
+    assert gif_path.exists()
+    assert gif_path.name == f"{event.id}-event-teaser.gif"
 
 
 def test_invalid_preset_raises(tmp_path: Path) -> None:

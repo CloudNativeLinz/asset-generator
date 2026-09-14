@@ -423,7 +423,7 @@ def test_generate_promotions_api_ignores_legacy_width(studio, monkeypatch) -> No
 
     def fake_generate(event, **kwargs):
         captured.update(kwargs)
-        path = Path("artifacts/32/teaser-first-slot.png")
+        path = Path("artifacts/32/32-teaser-first-slot.png")
         path.write_bytes(b"image")
         return [
             PromotionImage(

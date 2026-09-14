@@ -121,7 +121,7 @@ def generate_promotions(
         destination = (
             Path(output_dir)
             / str(event.id)
-            / (f"{preset}-{context['promotion_variant']}{suffix}.{output_format}")
+            / (f"{event.id}-{preset}-{context['promotion_variant']}{suffix}.{output_format}")
         )
         destination.parent.mkdir(parents=True, exist_ok=True)
         image.save(destination, format="PNG" if output_format == "png" else "JPEG", quality=95)

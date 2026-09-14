@@ -30,15 +30,17 @@ make generate-bundle EVENT_ID=44
 
 The bundle is written to `artifacts/<event-id>/` and contains:
 
-- `meetup.jpg` or `meetup.png`
-- `meetup-diamond.<format>`
-- `meetup-website-<stage>.<format>`, `mobile-website-<stage>.<format>`, and
-	`teaser-<stage>.<format>` at their native sizes
-- `speaker-<n>-portrait.<format>` and `speaker-<n>-diamond.<format>`
+- `<event-id>-meetup.jpg` or `<event-id>-meetup.png`
+- `<event-id>-meetup-diamond.<format>`
+- `<event-id>-meetup-website-<stage>.<format>`,
+	`<event-id>-mobile-website-<stage>.<format>`, and
+	`<event-id>-teaser-<stage>.<format>` at their native sizes
+- `<event-id>-speaker-<n>-portrait.<format>` and
+	`<event-id>-speaker-<n>-diamond.<format>`
 - `social.json` with LinkedIn meetup and talk drafts, CTA variants, post variants, and short-form copy
-- `slides/` with title, agenda, speaker, sponsor, and CTA PNGs
+- `slides/` with event-prefixed title, agenda, speaker, sponsor, and CTA PNGs
 - `slides.pdf`
-- `animations/` when animation presets are requested
+- `animations/` with event-prefixed GIF/MP4 files when animation presets are requested
 
 Azure OpenAI is used for social copy when configured. Otherwise, deterministic rule-based copy is generated.
 
@@ -95,11 +97,12 @@ same order. This produces the three- and four-person layouts automatically. A si
 instead contain both people; multiple photos of a solo speaker do not create extra presenters.
 Missing portraits retain the cloud artwork. Missing dates show "Date coming soon".
 
-Files are written to `artifacts/<event-id>/<canvas>-<stage>.<format>`. An explicit `WIDTH`
-on `generate-promotions` scales proportionally and adds a width suffix to avoid overwriting
-native-size exports. Bundle `WIDTH` and the studio's saved width still apply to legacy outputs;
-landscape images in bundles always retain their native sizes. Existing square filenames are
-unchanged. Use `PROMOTIONS=0` on `generate-bundle` to omit the additional graphics.
+Files are written to
+`artifacts/<event-id>/<event-id>-<canvas>-<stage>.<format>`. An explicit `WIDTH` on
+`generate-promotions` scales proportionally and adds a width suffix to avoid overwriting
+native-size exports. Bundle `WIDTH` and the studio's saved width still apply to square outputs;
+landscape images in bundles always retain their native sizes. Use `PROMOTIONS=0` on
+`generate-bundle` to omit the additional graphics.
 
 In the studio, **Generate Images** always renders all three canvases with the `auto` variant and
 lists them on the Artifact Wall, grouped by canvas and displayed without square cropping. Variant

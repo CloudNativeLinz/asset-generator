@@ -214,7 +214,7 @@ def _bundle_snapshot(
                 continue
             asset = {"name": item.name, "url": _artifact_url(item.as_posix())}
             for preset, label in PROMOTION_FORMATS.items():
-                if item.name.startswith(preset + "-"):
+                if item.name.startswith(f"{event_id}-{preset}-"):
                     asset.update({"preset": preset, "label": label})
                     break
             images.append(asset)

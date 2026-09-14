@@ -28,9 +28,9 @@ def test_generate_event_bundle_creates_images_and_social(tmp_path: Path, monkeyp
     assert bundle.images.meetup_diamond_image is not None
     assert Path(bundle.images.meetup_diamond_image).exists()
     assert len(bundle.images.speaker_images) == len(event.talks) * 2
-    assert Path(bundle.output_dir, "meetup-diamond.jpg").exists()
-    assert Path(bundle.output_dir, "speaker-1-portrait.jpg").exists()
-    assert Path(bundle.output_dir, "speaker-1-diamond.jpg").exists()
+    assert Path(bundle.output_dir, "32-meetup-diamond.jpg").exists()
+    assert Path(bundle.output_dir, "32-speaker-1-portrait.jpg").exists()
+    assert Path(bundle.output_dir, "32-speaker-1-diamond.jpg").exists()
     assert Path(bundle.output_dir, "social.json").exists()
 
 
@@ -70,12 +70,12 @@ def test_bundle_generates_only_portrait_and_diamond_speaker_cards(
     )
 
     expected_names = {
-        f"speaker-{number}-{variant}.{output_format}"
+        f"1-speaker-{number}-{variant}.{output_format}"
         for number in (1, 2)
         for variant in ("portrait", "diamond")
     }
     assert {Path(path).name for path in bundle.images.speaker_images} == expected_names
-    assert {path.name for path in Path(bundle.output_dir).rglob("speaker-*")} == expected_names
+    assert {path.name for path in Path(bundle.output_dir).rglob("1-speaker-*")} == expected_names
     assert len(render_contexts) == 6
     assert event.model_dump() == original
 
@@ -122,7 +122,7 @@ def test_bundle_adds_native_promotions_without_changing_legacy_width(tmp_path, m
         include_social=False,
         include_slides=False,
     )
-    assert Path(result.images.meetup_image).name == "meetup.jpg"
+    assert Path(result.images.meetup_image).name == "1-meetup.jpg"
     assert len(result.images.promotions) == 3
     assert [(image.width, image.height) for image in result.images.promotions] == [
         (1080, 610),

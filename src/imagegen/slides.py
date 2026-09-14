@@ -66,7 +66,7 @@ def generate_slide_deck(
         _slide_order(event, resolved), start=1
     ):
         image = _render_slide(template_path, event, width, extra_context)
-        png_path = slides_dir / f"{position:02d}-{name}.png"
+        png_path = slides_dir / f"{event.id}-{position:02d}-{name}.png"
         image.save(png_path, format="PNG")
         slide_paths.append(png_path.as_posix())
         pages.append(image)

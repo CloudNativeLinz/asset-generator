@@ -121,7 +121,11 @@ def _speaker_spotlight(
         frames = _ken_burns_frames(base)
         clips.append(
             _export_clip(
-                frames, event_dir, f"speaker-spotlight-{index + 1}", fps=fps, prefer_mp4=prefer_mp4
+                frames,
+                event_dir,
+                f"{event.id}-speaker-spotlight-{index + 1}",
+                fps=fps,
+                prefer_mp4=prefer_mp4,
             )
         )
     return clips
@@ -134,7 +138,9 @@ def _event_teaser(
     for template_path in TEASER_SLIDE_TEMPLATES:
         base = _render_frame(template_path, event, width)
         frames.extend(_ken_burns_frames(base, num_frames=DEFAULT_FRAMES // 2, zoom_end=1.05))
-    clip = _export_clip(frames, event_dir, "event-teaser", fps=fps, prefer_mp4=prefer_mp4)
+    clip = _export_clip(
+        frames, event_dir, f"{event.id}-event-teaser", fps=fps, prefer_mp4=prefer_mp4
+    )
     return [clip]
 
 

@@ -91,7 +91,7 @@ def generate_event_bundle(
     meetup_image = render_event(
         template=meetup_template, event=event, width=width, output_format=fmt
     )
-    meetup_destination = event_dir / f"meetup.{fmt}"
+    meetup_destination = event_dir / f"{event.id}-meetup.{fmt}"
     meetup_path = _save_image(meetup_image, meetup_destination, fmt)
 
     meetup_diamond_image = render_event(
@@ -101,7 +101,7 @@ def generate_event_bundle(
         output_format=fmt,
         extra_context=_event_diamond_context(event),
     )
-    meetup_diamond_destination = event_dir / f"meetup-diamond.{fmt}"
+    meetup_diamond_destination = event_dir / f"{event.id}-meetup-diamond.{fmt}"
     meetup_diamond_path = _save_image(meetup_diamond_image, meetup_diamond_destination, fmt)
 
     speaker_paths: list[str] = []
@@ -113,7 +113,7 @@ def generate_event_bundle(
             output_format=fmt,
             extra_context={"talk_index": index},
         )
-        portrait_destination = event_dir / f"speaker-{index + 1}-portrait.{fmt}"
+        portrait_destination = event_dir / f"{event.id}-speaker-{index + 1}-portrait.{fmt}"
         speaker_paths.append(_save_image(portrait_image, portrait_destination, fmt))
 
         diamond_template = (
@@ -130,7 +130,7 @@ def generate_event_bundle(
                 "diamond_images": _talk_images(talk),
             },
         )
-        diamond_destination = event_dir / f"speaker-{index + 1}-diamond.{fmt}"
+        diamond_destination = event_dir / f"{event.id}-speaker-{index + 1}-diamond.{fmt}"
         speaker_paths.append(_save_image(diamond_image, diamond_destination, fmt))
 
     promotions = generate_promotions(

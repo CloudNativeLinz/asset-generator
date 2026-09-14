@@ -57,6 +57,7 @@ def test_generate_promotions_distinct_outputs(tmp_path: Path, fmt: str) -> None:
     assert len(images) == len(PROMOTION_FORMATS)
     assert len({image.path for image in images}) == len(images)
     for result in images:
+        assert Path(result.path).name.startswith(f"{event.id}-{result.preset}-")
         with Image.open(result.path) as image:
             assert image.size == (result.width, result.height)
             assert image.format == ("JPEG" if fmt == "jpg" else "PNG")
