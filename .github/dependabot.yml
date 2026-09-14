@@ -8,7 +8,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       python-dependencies:
         patterns:
@@ -16,7 +16,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       docker-dependencies:
         patterns:
@@ -24,8 +24,16 @@ updates:
   - package-ecosystem: "github-actions"
     directory: ".github/workflows"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       github-actions:
+        patterns:
+          - "*"
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      devcontainer-dependencies:
         patterns:
           - "*"
