@@ -9,6 +9,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 14
     groups:
       python-dependencies:
         patterns:
@@ -17,6 +19,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 14
     groups:
       docker-dependencies:
         patterns:
@@ -25,6 +29,8 @@ updates:
     directory: ".github/workflows"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 14
     groups:
       github-actions:
         patterns:
@@ -33,6 +39,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 14
     groups:
       devcontainer-dependencies:
         patterns:

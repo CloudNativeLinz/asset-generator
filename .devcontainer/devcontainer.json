@@ -9,6 +9,10 @@
     },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
+  "containerEnv": {
+    "PIP_INDEX_URL": "https://packagefeedproxy.microsoft.io/pypi/simple/",
+    "NPM_CONFIG_REGISTRY": "https://packagefeedproxy.microsoft.io/npm/"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
