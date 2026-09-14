@@ -1223,15 +1223,20 @@
         dom.artifactGrid.innerHTML = "";
         const imageLoads = [];
 
-        const images = [...(snapshot?.images || [])].sort((first, second) =>
-          (first.preset || "").localeCompare(second.preset || ""));
+        const groupRank = { "meetup-website": 0, teaser: 1, "mobile-website": 2 };
+        const rankOf = (asset) => (asset.preset ? groupRank[asset.preset] ?? 3 : 4);
+        const isMeetupSquare = (asset) =>
+          !asset.preset && /(^|[-_])meetup([-.]|$)/i.test(asset.name);
+        const orderedImages = [...(snapshot?.images || [])].sort((first, second) => {
+          const byGroup = rankOf(first) - rankOf(second);
+          if (byGroup !== 0) return byGroup;
+          if (isMeetupSquare(first) !== isMeetupSquare(second)) {
+            return isMeetupSquare(first) ? -1 : 1;
+          }
+          return first.name.localeCompare(second.name);
+        });
         const currentImage = snapshot?.current_image || null;
         const googleSlides = snapshot?.google_slides || null;
-        const meetupIndex = images.findIndex((asset) => !asset.preset && /(^|[-_])meetup([-.]|$)/i.test(asset.name));
-        const orderedImages =
-          meetupIndex >= 0
-            ? [images[meetupIndex], ...images.slice(0, meetupIndex), ...images.slice(meetupIndex + 1)]
-            : images;
         state.assetImages = currentImage ? [currentImage, ...orderedImages] : orderedImages;
         const assetCount = orderedImages.length;
         dom.artifactCount.textContent =
