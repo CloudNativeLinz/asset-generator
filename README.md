@@ -203,8 +203,7 @@ make generate-bundle EVENT_ID=44 ANIMATIONS="speaker-spotlight event-teaser"
 ## Speaker Images
 
 Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a rounded portrait card
-and a diamond card. Bundle generation does not create plain `speaker-<n>.png` files,
-`speaker-<n>-cutout.<format>` cards, or intermediate images under `cutouts/`.
+and a diamond card. Bundle generation does not create plain `speaker-<n>.png` files.
 Previously generated files are left untouched.
 
 Bundles also include diamond speaker cards and a diamond meetup banner. A talk with two speaker

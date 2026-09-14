@@ -12,7 +12,6 @@ class Talk(BaseModel):
     speaker: str = ""
     image: str | HttpUrl | None = None
     images: list[str | HttpUrl] = Field(default_factory=list)
-    cutout: str | None = None
     social: str | HttpUrl | None = None
 
 

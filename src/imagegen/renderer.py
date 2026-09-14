@@ -71,7 +71,7 @@ def _event_context(event: Event) -> dict[str, Any]:
 
     padded_talks = [dict(talk) if isinstance(talk, dict) else {} for talk in talks]
     while len(padded_talks) < 2:
-        padded_talks.append({"title": "", "speaker": "", "image": "", "cutout": "", "social": None})
+        padded_talks.append({"title": "", "speaker": "", "image": "", "social": None})
 
     context["talks"] = padded_talks
     return context
@@ -195,7 +195,7 @@ def render_event(
         )
 
     env = _jinja_env()
-    context = {"event": _event_context(event), "speaker_variant": "auto"}
+    context = {"event": _event_context(event)}
     if extra_context:
         context.update(extra_context)
     draw = ImageDraw.Draw(canvas)

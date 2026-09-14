@@ -12,7 +12,9 @@ from .config import Event, Template
 EVENTS_URL = "https://raw.githubusercontent.com/CloudNativeLinz/cloudnativelinz.github.io/refs/heads/main/_data/events.yml"
 SPEAKER_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".avif")
 SPEAKER_IMAGES_DIR = Path("assets/speaker-images")
-SPEAKER_CUTOUTS_DIR = Path("assets/speaker-cutouts")
+
+# Expired CDN links would otherwise be re-requested on every load_events() call.
+_UNAVAILABLE_SPEAKER_IMAGE_URLS: set[str] = set()
 
 
 def _safe_yaml_load(path: Path) -> Any:
@@ -44,13 +46,6 @@ def _find_local_speaker_image(event_id: int, talk_index: int) -> str | None:
     return None
 
 
-def _find_local_speaker_cutout(event_id: int, talk_index: int) -> str | None:
-    candidate = SPEAKER_CUTOUTS_DIR / f"{event_id}-{talk_index}.png"
-    if candidate.exists() and candidate.is_file():
-        return f"/{candidate.as_posix()}"
-    return None
-
-
 def _speaker_image_extension(url: str, content_type: str | None) -> str:
     content_type_map = {
         "image/jpeg": ".jpg",
@@ -72,12 +67,17 @@ def _speaker_image_extension(url: str, content_type: str | None) -> str:
 
 
 def _download_speaker_image(url: str, event_id: int, talk_index: int) -> str | None:
+    if url in _UNAVAILABLE_SPEAKER_IMAGE_URLS:
+        return None
+
     try:
         response = requests.get(url, timeout=20)
     except requests.RequestException:
+        _UNAVAILABLE_SPEAKER_IMAGE_URLS.add(url)
         return None
 
     if response.status_code != 200 or not response.content:
+        _UNAVAILABLE_SPEAKER_IMAGE_URLS.add(url)
         return None
 
     extension = _speaker_image_extension(url, response.headers.get("content-type"))
@@ -87,6 +87,7 @@ def _download_speaker_image(url: str, event_id: int, talk_index: int) -> str | N
     try:
         destination.write_bytes(response.content)
     except OSError:
+        _UNAVAILABLE_SPEAKER_IMAGE_URLS.add(url)
         return None
 
     return f"/{destination.as_posix()}"
@@ -105,10 +106,6 @@ def _apply_speaker_image_fallbacks(raw_events: list[dict[str, Any]]) -> list[dic
         for index, talk in enumerate(talks, start=1):
             if not isinstance(talk, dict):
                 continue
-
-            cutout = _find_local_speaker_cutout(event_id, index)
-            if cutout is not None:
-                talk["cutout"] = cutout
 
             image = str(talk.get("image") or "").strip()
             fallback = _find_local_speaker_image(event_id, index)

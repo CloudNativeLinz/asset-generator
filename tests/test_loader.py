@@ -69,6 +69,38 @@ def test_load_events_downloads_remote_speaker_image_when_missing(
     assert (tmp_path / "assets" / "speaker-images" / "99-1.jpg").exists()
 
 
+def test_load_events_does_not_retry_unavailable_speaker_image(
+    tmp_path: Path, monkeypatch
+) -> None:
+    events_file = tmp_path / "events.yml"
+    events_file.write_text(
+        """
+- id: 99
+  title: "Event"
+  talks:
+  - title: "Talk 1"
+    speaker: "Speaker 1"
+    image: "https://example.com/expired"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    attempts: list[str] = []
+
+    def fake_get(url: str, timeout: int):
+        attempts.append(url)
+        return SimpleNamespace(status_code=403, content=b"", headers={})
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("imagegen.loader.requests.get", fake_get)
+    monkeypatch.setattr("imagegen.loader._UNAVAILABLE_SPEAKER_IMAGE_URLS", set())
+
+    load_events(str(events_file))
+    load_events(str(events_file))
+
+    assert attempts == ["https://example.com/expired"]
+
+
 def test_load_events_accepts_null_host_values(tmp_path: Path) -> None:
     events_file = tmp_path / "events.yml"
     events_file.write_text(
@@ -146,26 +178,3 @@ def test_load_events_maps_doors_open_to_time(tmp_path: Path) -> None:
     event = load_events(str(events_file))[0]
 
     assert event.time == "17:30"
-
-
-def test_load_events_prefers_local_speaker_cutout(tmp_path: Path, monkeypatch) -> None:
-    events_file = tmp_path / "events.yml"
-    events_file.write_text(
-        """
-- id: 11
-  title: "Speaker event"
-  talks:
-    - title: "A talk"
-      speaker: "A speaker"
-      image: "portrait.jpg"
-""".strip(),
-        encoding="utf-8",
-    )
-    cutouts_dir = tmp_path / "assets" / "speaker-cutouts"
-    cutouts_dir.mkdir(parents=True)
-    (cutouts_dir / "11-1.png").write_bytes(b"png-placeholder")
-    monkeypatch.chdir(tmp_path)
-
-    event = load_events(str(events_file))[0]
-
-    assert event.talks[0].cutout == "/assets/speaker-cutouts/11-1.png"

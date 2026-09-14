@@ -29,10 +29,8 @@ def test_generate_event_bundle_creates_images_and_social(tmp_path: Path, monkeyp
     assert Path(bundle.images.meetup_diamond_image).exists()
     assert len(bundle.images.speaker_images) == len(event.talks) * 2
     assert Path(bundle.output_dir, "meetup-diamond.jpg").exists()
-    assert not Path(bundle.output_dir, "speaker-1-cutout.jpg").exists()
     assert Path(bundle.output_dir, "speaker-1-portrait.jpg").exists()
     assert Path(bundle.output_dir, "speaker-1-diamond.jpg").exists()
-    assert not Path(bundle.output_dir, "cutouts").exists()
     assert Path(bundle.output_dir, "social.json").exists()
 
 
@@ -55,7 +53,7 @@ def test_bundle_generates_only_portrait_and_diamond_speaker_cards(
         id=1,
         talks=[
             Talk(speaker="First", image=str(portrait)),
-            Talk(speaker="Second", image=str(portrait), cutout="curated.png"),
+            Talk(speaker="Second", image=str(portrait)),
         ],
     )
     original = event.model_dump()
@@ -78,11 +76,7 @@ def test_bundle_generates_only_portrait_and_diamond_speaker_cards(
     }
     assert {Path(path).name for path in bundle.images.speaker_images} == expected_names
     assert {path.name for path in Path(bundle.output_dir).rglob("speaker-*")} == expected_names
-    assert not Path(bundle.output_dir, "cutouts").exists()
     assert len(render_contexts) == 6
-    assert [
-        context["speaker_variant"] for context in render_contexts if "speaker_variant" in context
-    ] == ["portrait", "portrait"]
     assert event.model_dump() == original
 
 

@@ -111,7 +111,7 @@ def generate_event_bundle(
             event=event,
             width=width,
             output_format=fmt,
-            extra_context={"talk_index": index, "speaker_variant": "portrait"},
+            extra_context={"talk_index": index},
         )
         portrait_destination = event_dir / f"speaker-{index + 1}-portrait.{fmt}"
         speaker_paths.append(_save_image(portrait_image, portrait_destination, fmt))
