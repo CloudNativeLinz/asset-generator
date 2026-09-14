@@ -205,6 +205,12 @@ make generate-bundle EVENT_ID=44 ANIMATIONS="speaker-spotlight event-teaser"
 
 ## Speaker Images
 
+Speaker portraits are owned by the
+[`cloudnativelinz.github.io`](https://github.com/CloudNativeLinz/cloudnativelinz.github.io/tree/main/images/speakers)
+repository. Store portraits in its `images/speakers` directory and reference them in event data as
+`/images/speakers/<filename>`. Legacy `/assets/speaker-images/` references are resolved to the same
+repository for compatibility.
+
 Speaker cards use `assets/templates/speaker.yaml`. Each talk produces a rounded portrait card
 and a diamond card. Bundle generation does not create plain `speaker-<n>.png` files.
 Previously generated files are left untouched.

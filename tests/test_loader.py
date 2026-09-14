@@ -1,12 +1,9 @@
 from pathlib import Path
-from types import SimpleNamespace
 
 from imagegen.loader import load_events
 
 
-def test_load_events_prefers_local_speaker_image_for_remote_url(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_load_events_resolves_legacy_speaker_image_to_website_repo(tmp_path: Path) -> None:
     events_file = tmp_path / "events.yml"
     events_file.write_text(
         """
@@ -15,29 +12,20 @@ def test_load_events_prefers_local_speaker_image_for_remote_url(
   talks:
     - title: "Talk 1"
       speaker: "Speaker 1"
-      image: "https://example.com/first.jpg"
-    - title: "Talk 2"
-      speaker: "Speaker 2"
-      image: "https://example.com/second.jpg"
+      image: "/assets/speaker-images/46-1.png"
 """.strip(),
         encoding="utf-8",
     )
 
-    assets_dir = tmp_path / "assets" / "speaker-images"
-    assets_dir.mkdir(parents=True, exist_ok=True)
-    (assets_dir / "46-1.jpg").write_bytes(b"jpeg-placeholder")
-    (assets_dir / "46-2.jpg").write_bytes(b"jpeg-placeholder")
-
-    monkeypatch.chdir(tmp_path)
-
     events = load_events(str(events_file))
 
-    assert events[0].talks[1].image == "/assets/speaker-images/46-2.jpg"
+    assert events[0].talks[0].image == (
+        "https://raw.githubusercontent.com/CloudNativeLinz/"
+        "cloudnativelinz.github.io/refs/heads/main/images/speakers/46-1.png"
+    )
 
 
-def test_load_events_downloads_remote_speaker_image_when_missing(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_load_events_resolves_canonical_speaker_image_to_website_repo(tmp_path: Path) -> None:
     events_file = tmp_path / "events.yml"
     events_file.write_text(
         """
@@ -46,32 +34,20 @@ def test_load_events_downloads_remote_speaker_image_when_missing(
   talks:
   - title: "Talk 1"
     speaker: "Speaker 1"
-    image: "https://example.com/profile"
+    image: "/images/speakers/profile.webp"
 """.strip(),
         encoding="utf-8",
     )
 
-    def fake_get(url: str, timeout: int):
-        assert url == "https://example.com/profile"
-        assert timeout == 20
-        return SimpleNamespace(
-            status_code=200,
-            content=b"fake-image-bytes",
-            headers={"content-type": "image/jpeg"},
-        )
-
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("imagegen.loader.requests.get", fake_get)
-
     events = load_events(str(events_file))
 
-    assert events[0].talks[0].image == "/assets/speaker-images/99-1.jpg"
-    assert (tmp_path / "assets" / "speaker-images" / "99-1.jpg").exists()
+    assert events[0].talks[0].image == (
+        "https://raw.githubusercontent.com/CloudNativeLinz/"
+        "cloudnativelinz.github.io/refs/heads/main/images/speakers/profile.webp"
+    )
 
 
-def test_load_events_does_not_retry_unavailable_speaker_image(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_load_events_preserves_external_speaker_image_url(tmp_path: Path) -> None:
     events_file = tmp_path / "events.yml"
     events_file.write_text(
         """
@@ -80,25 +56,14 @@ def test_load_events_does_not_retry_unavailable_speaker_image(
   talks:
   - title: "Talk 1"
     speaker: "Speaker 1"
-    image: "https://example.com/expired"
+    image: "https://example.com/profile.jpg"
 """.strip(),
         encoding="utf-8",
     )
 
-    attempts: list[str] = []
+    events = load_events(str(events_file))
 
-    def fake_get(url: str, timeout: int):
-        attempts.append(url)
-        return SimpleNamespace(status_code=403, content=b"", headers={})
-
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("imagegen.loader.requests.get", fake_get)
-    monkeypatch.setattr("imagegen.loader._UNAVAILABLE_SPEAKER_IMAGE_URLS", set())
-
-    load_events(str(events_file))
-    load_events(str(events_file))
-
-    assert attempts == ["https://example.com/expired"]
+    assert events[0].talks[0].image == "https://example.com/profile.jpg"
 
 
 def test_load_events_accepts_null_host_values(tmp_path: Path) -> None:

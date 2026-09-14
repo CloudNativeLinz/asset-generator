@@ -5,7 +5,7 @@
   talks:
     - title: "How to securely deploy Kubernetes on Azure"
       speaker: "Marcel Tober & Andreas Wimmersberger"
-      image: "/assets/speaker-images/36-1.jpeg"
+      image: "/images/speakers/36-1.jpeg"
     - title: "Secrets Management - from plaintext to hiding keys in the Swiss Alps"
       speaker: "Markus Adelsberger & Georg Mayrhofer"
       image: "https://media.licdn.com/dms/image/v2/D4D03AQGeyJ7GQgLw4g/profile-displayphoto-shrink_800_800/B4DZd56zluGYAg-/0/1750097148964?e=1761782400&v=beta&t=gDx4QPjXIjbKPF6mmrklPOzS0k7jF66Df8mcblDOYW0"
@@ -17,10 +17,10 @@
   talks:
     - title: "Test Talk 1"
       speaker: "Test Speaker 1"
-      image: "/assets/speaker-images/juliano-costa.jpg"
+      image: "/images/speakers/juliano-costa.jpg"
     - title: "Test Talk 2" 
       speaker: "Test Speaker 2"
-      image: "/assets/speaker-images/jetzlstorfer.jpg"
+      image: "/images/speakers/jetzlstorfer.jpg"
 
 - id: 52
   title: "Save the Date"
@@ -42,7 +42,7 @@
   talks:
     - title: "Hacking the Cloud Bill: Building a Multi-Cloud Cost Pipeline" # with ClickHouse & Python
       speaker: "Clemens Kriechbaumer & Heinz Mayer"
-      image: "/assets/speaker-images/44-1.png"
+      image: "/images/speakers/44-1.png"
     - title: "The Kubernetes and the Bazzar"
       speaker: "Hubert Ströbitzer"
       image: "https://sessionize.com/image/1e25-400o400o2-aMovy7BRHym77YN6Aa9yzK.jpg"
