@@ -264,9 +264,9 @@ export IMAGEGEN_GITHUB_TOKEN="<github-token>"
 `GITHUB_TOKEN` is also accepted. The token is only read server-side, is never sent to the browser,
 and is never written to `artifacts/studio-settings.json`. Do not commit it.
 
-The destination defaults to `CloudNativeLinz/go-image-generator`, branch `main`, and path
-`artifacts`. These values can be changed on the settings tab. The selected image is converted to
-JPEG when necessary and committed to `<path-prefix>/<event-id>.jpg`, matching the URL used by
+The destination defaults to `CloudNativeLinz/cloudnativelinz.github.io`, branch `main`, and path
+`images/events`. These values can be changed on the settings tab. The selected image is converted
+to JPEG when necessary and committed to `<path-prefix>/<event-id>.jpg`, matching the URL used by
 cloudnativelinz.at. Without a configured token the selection buttons stay disabled.
 
 ## Azure Container Apps

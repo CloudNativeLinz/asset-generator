@@ -46,10 +46,13 @@ from ..social import generate_social_bundle
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 WEBSITE_IMAGE_REPO = (
-    github_configuration_value("WEBSITE_IMAGE_REPO") or "CloudNativeLinz/go-image-generator"
+    github_configuration_value("WEBSITE_IMAGE_REPO")
+    or "CloudNativeLinz/cloudnativelinz.github.io"
 )
 WEBSITE_IMAGE_BRANCH = github_configuration_value("WEBSITE_IMAGE_BRANCH") or "main"
-WEBSITE_IMAGE_PATH_PREFIX = github_configuration_value("WEBSITE_IMAGE_PATH_PREFIX") or "artifacts"
+WEBSITE_IMAGE_PATH_PREFIX = (
+    github_configuration_value("WEBSITE_IMAGE_PATH_PREFIX") or "images/events"
+)
 
 
 class BundleRequest(BaseModel):

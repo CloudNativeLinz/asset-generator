@@ -209,7 +209,7 @@ def test_settings_report_github_availability(studio, monkeypatch) -> None:
     payload = _json_body(asyncio.run(get_settings()))
 
     assert payload["github_enabled"] is True
-    assert payload["settings"]["github_repo"] == "CloudNativeLinz/go-image-generator"
+    assert payload["settings"]["github_repo"] == "CloudNativeLinz/cloudnativelinz.github.io"
     assert "token" not in json.dumps(payload["settings"]).lower()
 
 
@@ -246,10 +246,10 @@ def test_publish_image_commits_the_requested_asset(studio, monkeypatch) -> None:
 
     assert body["published"] is True
     assert body["commit_url"] == "https://github.com/owner/repo/commit/abc123"
-    assert captured["repo_path"] == "artifacts/32.jpg"
+    assert captured["repo_path"] == "images/events/32.jpg"
     assert captured["source_name"] == "32.jpg"
     assert captured["uploaded_format"] == "JPEG"
-    assert captured["repository"] == "CloudNativeLinz/go-image-generator"
+    assert captured["repository"] == "CloudNativeLinz/cloudnativelinz.github.io"
     assert "32" in str(captured["message"])
 
 
@@ -320,10 +320,10 @@ def test_bundle_snapshot_includes_current_website_image(studio) -> None:
 
     assert body["current_image"] == {
         "name": "32.jpg",
-        "url": "https://raw.githubusercontent.com/CloudNativeLinz/go-image-generator/main/artifacts/32.jpg",
+        "url": "https://raw.githubusercontent.com/CloudNativeLinz/cloudnativelinz.github.io/main/images/events/32.jpg",
         "page_url": "https://cloudnativelinz.at/",
-        "repository": "CloudNativeLinz/go-image-generator",
-        "path": "artifacts/32.jpg",
+        "repository": "CloudNativeLinz/cloudnativelinz.github.io",
+        "path": "images/events/32.jpg",
     }
 
 
@@ -371,7 +371,7 @@ def test_publish_preserves_jpeg_bytes(studio, monkeypatch) -> None:
 
     def fake_publish(upload_source, **kwargs):
         assert upload_source.read_bytes() == original_bytes
-        assert kwargs["repo_path"] == "artifacts/32.jpg"
+        assert kwargs["repo_path"] == "images/events/32.jpg"
         return {"updated": True}
 
     monkeypatch.setattr(web_app, "publish_file", fake_publish)
