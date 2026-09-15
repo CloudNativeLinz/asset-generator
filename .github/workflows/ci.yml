@@ -86,8 +86,22 @@ jobs:
             --resource-group "${RESOURCE_GROUP}" \
             --image "${IMAGE}" \
             --output none
+          make azure-auth \
+            AZURE_APP="${CONTAINER_APP}" \
+            AZURE_RESOURCE_GROUP="${RESOURCE_GROUP}"
 
-      - name: Verify deployment
+      - name: Verify anonymous access is blocked
         env:
           APP_URL: ${{ vars.AZURE_CONTAINER_APP_URL }}
-        run: curl --fail --silent --show-error --retry 5 --retry-delay 10 --retry-all-errors "${APP_URL}"
+        run: |
+          for path in / /settings /openapi.json /artifacts/studio-settings.json; do
+            response=$(curl --fail --silent --show-error \
+              --retry 5 --retry-delay 10 --retry-all-errors \
+              --header 'Accept: text/html' --user-agent 'Mozilla/5.0' \
+              --output /dev/null --write-out '%{http_code} %{redirect_url}' \
+              "${APP_URL%/}${path}")
+            if [[ "${response}" != "302 https://login.microsoftonline.com/"* ]]; then
+              echo "Expected a Microsoft sign-in redirect for ${path}."
+              exit 1
+            fi
+          done

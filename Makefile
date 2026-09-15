@@ -20,10 +20,11 @@ GOOGLE_SLIDES_TEMPLATE ?= https://docs.google.com/presentation/d/1GPgXC7C3l5c3eJ
 AZURE_APP ?= cloudnative-asset-generator
 AZURE_RESOURCE_GROUP ?= rg-cloudnative-asset-generator
 AZURE_LOCATION ?= swedencentral
+AZURE_AUTH_CONFIG ?= deploy/azure-auth.json
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-promotions generate-slides generate-google-slides generate-animations run preview azure-deploy clean
+.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-promotions generate-slides generate-google-slides generate-animations run preview azure-deploy azure-auth clean
 
 help:
 	@echo "Available targets:"
@@ -43,6 +44,7 @@ help:
 	@echo "  generate-animations Generate animated clips (requires EVENT_ID)"
 	@echo "  web           Start local preview web app"
 	@echo "  azure-deploy  Build and deploy the preview app to Azure Container Apps"
+	@echo "  azure-auth    Apply the Easy Auth policy and account allowlist"
 	@echo "  clean         Remove caches and generated artifacts"
 	@echo ""
 	@echo "Common overrides:"
@@ -127,6 +129,12 @@ web: run
 azure-deploy:
 	@command -v az >/dev/null 2>&1 || { echo "Azure CLI is required: https://aka.ms/installazureclideb"; exit 1; }
 	az containerapp up --name $(AZURE_APP) --resource-group $(AZURE_RESOURCE_GROUP) --location $(AZURE_LOCATION) --source . --ingress external --target-port 8000 --min-replicas 1 --max-replicas 1
+	$(MAKE) azure-auth
+
+azure-auth:
+	@command -v az >/dev/null 2>&1 || { echo "Azure CLI is required: https://aka.ms/installazureclideb"; exit 1; }
+	@resource_id=$$(az containerapp show --name "$(AZURE_APP)" --resource-group "$(AZURE_RESOURCE_GROUP)" --query id --output tsv) && \
+		az rest --method PUT --url "https://management.azure.com$${resource_id}/authConfigs/current?api-version=2025-07-01" --body "@$(AZURE_AUTH_CONFIG)" --output none
 
 clean:
 	rm -rf .pytest_cache .ruff_cache .mypy_cache .cache

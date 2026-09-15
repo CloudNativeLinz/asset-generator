@@ -1,0 +1,44 @@
+{
+  "properties": {
+    "platform": {
+      "enabled": true
+    },
+    "globalValidation": {
+      "unauthenticatedClientAction": "RedirectToLoginPage",
+      "redirectToProvider": "aad",
+      "excludedPaths": []
+    },
+    "httpSettings": {
+      "requireHttps": true
+    },
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "enabled": true,
+        "registration": {
+          "clientId": "226613ef-7756-4049-bf5c-ecd574017077",
+          "clientSecretSettingName": "entra-client-secret",
+          "openIdIssuer": "https://login.microsoftonline.com/eae05f48-5c26-49ee-9b75-c75068e589c0/v2.0"
+        },
+        "login": {
+          "loginParameters": ["scope=openid profile email"]
+        },
+        "validation": {
+          "allowedAudiences": ["226613ef-7756-4049-bf5c-ecd574017077"],
+          "defaultAuthorizationPolicy": {
+            "allowedPrincipals": {
+              "identities": [
+                "1f0f9d12-6fe9-47f2-ab40-3c79f2f5c5c5",
+                "fb6fd012-03b3-4083-9751-02ca1c059c2e"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "login": {
+      "tokenStore": {
+        "enabled": false
+      }
+    }
+  }
+}

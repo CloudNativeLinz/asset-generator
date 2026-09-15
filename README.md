@@ -295,15 +295,71 @@ make azure-deploy \
 ```
 
 `az containerapp up` creates or reuses the resource group, Container Apps environment, registry,
-and app, then prints the public URL. Run the same target after code or data changes to deploy a new
-revision.
+and app, then prints the URL. The target also applies the checked-in Easy Auth policy. Run the same
+target after code or data changes to deploy a new revision. The policy targets the existing Entra
+registration described below; a new deployment needs its own registration, callback URL, and secret
+configured before it can use this policy. Initial ingress creation is public until the auth policy
+has been successfully applied, so do not treat a failed deployment as protected.
 
 The `CI/CD` GitHub Actions workflow runs linting, a package build, and tests for pull requests and
 pushes to `main`. After those checks pass on `main`, it authenticates to Azure with GitHub OIDC,
 pushes a commit-tagged image to Azure Container Registry, updates the existing Container App, and
-checks the public endpoint. The `production` GitHub environment holds these non-secret variables:
+reapplies the Easy Auth policy. Its endpoint check requires a Microsoft sign-in redirect on the
+studio, settings, API schema, and artifact paths; it fails if anonymous content is returned. This
+checks the authentication boundary, not a complete authenticated application session. The deployment
+identity needs permission to write `Microsoft.App/containerApps/authConfigs` as well as update the
+app. The `production` GitHub environment holds these non-secret variables:
 `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`,
 `AZURE_CONTAINER_REGISTRY`, `AZURE_CONTAINER_APP`, and `AZURE_CONTAINER_APP_URL`.
+
+### Access Control
+
+The deployed studio uses Azure Container Apps Easy Auth with Microsoft Entra ID. Every application
+path requires sign-in over HTTPS; there are no anonymous path exclusions. Local `make run` is
+unchanged and does not require Azure sign-in.
+
+The single-tenant enterprise application is `cloudnative-asset-generator-auth`:
+
+- Tenant ID: `eae05f48-5c26-49ee-9b75-c75068e589c0`
+- Application (client) ID: `226613ef-7756-4049-bf5c-ecd574017077`
+- Enterprise application object ID: `d5119e55-84e8-45cb-87de-cb8dff3f038f`
+
+Allowed accounts and their user object IDs in this tenant:
+
+| Account | User Object ID |
+| --- | --- |
+| `juergen.etzlstorfer@gmail.com` | `1f0f9d12-6fe9-47f2-ab40-3c79f2f5c5c5` |
+| `katharina.sick@hotmail.com` | `fb6fd012-03b3-4083-9751-02ca1c059c2e` |
+
+Sign in using the Microsoft identity associated with the email, as for Azure, not Google OAuth.
+External guests must accept their Entra invitation before first access.
+Entra has **Assignment required? = Yes** with only these users assigned. The additional
+`allowedPrincipals.identities` list in [deploy/azure-auth.json](deploy/azure-auth.json) restricts
+access by immutable user object ID, not by a caller-supplied email header. Keep both restrictions:
+Entra assignment alone has an exception for Global Administrators.
+
+To add another account:
+
+1. In this Entra tenant, locate the user or invite them as an external guest and have them redeem
+	the invitation. Copy their **Object ID in this tenant**, not an ID from their home tenant.
+2. Open **Enterprise applications > cloudnative-asset-generator-auth > Users and groups** and
+	assign the user with **Default Access**. Leave **Assignment required?** enabled.
+3. Append that object ID to `allowedPrincipals.identities` in
+	[deploy/azure-auth.json](deploy/azure-auth.json), preserving
+	existing IDs. Run `make azure-auth` to apply it without rebuilding the container, and commit the
+	policy so later deployments retain the change.
+
+To revoke access, remove the object ID from the policy and run `make azure-auth`, then remove the
+Entra assignment. Never use an empty allowlist as a deny-all policy: it can disable the principal
+restriction.
+
+The client secret is stored only as the Container App secret `entra-client-secret`; the policy
+contains only its name. The initial credential expires on **2027-09-15**. Before expiry, create a
+replacement under **App registrations > cloudnative-asset-generator-auth > Certificates & secrets**,
+update the Container App secret with the same name, and restart the active revision to load it.
+After testing sign-in, remove the old credential. A restart can discard local generated files, so
+back up anything needed first. Never commit or print the secret. Basic OpenID, profile, and email
+scopes have admin consent; no Microsoft Graph data access beyond those identity scopes is needed.
 
 Generated files and studio settings live in the container's local `artifacts/` directory. The
 deployment is limited to one replica to keep that local state consistent, but the files do not
