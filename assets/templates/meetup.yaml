@@ -4,7 +4,7 @@ size:
   width: 1920
   height: 1080
 defaults:
-  font: assets/fonts/LBRITE.TTF
+  font: assets/fonts/Inter-Regular.ttf
   color: "#FFFFFF"
   size: 28
 
@@ -16,6 +16,7 @@ elements:
 
   - id: date
     type: text
+    font: assets/fonts/Inter-SemiBold.ttf
     value: "{{ event.date | date('%d %b %Y') }}"
     box: { x: 380, y: 90, w: 1450, h: 70 }
     size: 52
@@ -26,6 +27,7 @@ elements:
 
   - id: title
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ event.title }}"
     box: { x: 380, y: 165, w: 1450, h: 170 }
     size: 68
@@ -44,6 +46,7 @@ elements:
 
   - id: speaker1_talk
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ event.talks[0].title | default('') }}"
     box: { x: 640, y: 520, w: 390, h: 150 }
     size: 40
@@ -57,7 +60,7 @@ elements:
     type: text
     value: "{{ event.talks[0].speaker | default('') }}"
     box: { x: 640, y: 680, w: 390, h: 85 }
-    font: assets/fonts/LBRITED.TTF
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 32
     color: "#000000"
     align: left
@@ -74,6 +77,7 @@ elements:
 
   - id: speaker2_talk
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ event.talks[1].title | default('') }}"
     box: { x: 1400, y: 690, w: 420, h: 150 }
     size: 40
@@ -87,7 +91,7 @@ elements:
     type: text
     value: "{{ event.talks[1].speaker | default('') }}"
     box: { x: 1400, y: 850, w: 420, h: 85 }
-    font: assets/fonts/LBRITED.TTF
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 32
     color: "#000000"
     align: left

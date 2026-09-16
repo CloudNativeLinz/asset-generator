@@ -419,6 +419,18 @@ to use their exported PNG backgrounds.
 
 Built-in Jinja filters are `date`, `slug`, `upper`, `lower`, and `default`.
 
+### Fonts
+
+All shipped image, promotion, and PDF slide templates use locally bundled **Inter**
+to match the Cloud Native Linz website: Bold for headlines, SemiBold for speaker names
+and prominent metadata, and Regular for supporting text. No font download is needed
+at generation time. Existing lettering embedded in background PNGs is unchanged.
+
+Inter is licensed under SIL OFL 1.1. DejaVu is retained for existing custom templates;
+the proprietary Lucida Bright files have been removed. See
+[font sources and licenses](assets/fonts/README.md) for redistribution requirements
+and migration notes.
+
 ## Project Layout
 
 ```text

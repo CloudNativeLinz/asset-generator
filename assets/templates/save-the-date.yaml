@@ -4,7 +4,7 @@ size:
   width: 1200
   height: 1200
 defaults:
-  font: assets/fonts/DejaVuSans.ttf
+  font: assets/fonts/Inter-Regular.ttf
   color: "#000000"
   size: 28
 
@@ -25,7 +25,7 @@ elements:
     type: text
     value: "{{ event.date | date('%B %d, %Y') }}"
     box: { x: 267, y: 803, w: 666, h: 93 }
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 64
     color: "#FFFFFF"
     align: center
@@ -42,7 +42,7 @@ elements:
     type: text
     value: "{{ event.host }}"
     box: { x: 392, y: 899, w: 416, h: 86 }
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 64
     color: "#FFFFFF"
     align: center
@@ -54,7 +54,7 @@ elements:
     type: text
     value: "{{ event.title | default('Save the Date') }}"
     box: { x: 120, y: 1015, w: 960, h: 55 }
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-Bold.ttf
     size: 44
     color: "#000000"
     align: center
