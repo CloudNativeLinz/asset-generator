@@ -25,7 +25,9 @@ dependencies = [
 dev = [
   "pytest==9.1.1",
   "ruff==0.16.6",
-  "black==26.5.1"
+  "black==26.5.1",
+  "djlint==1.36.4",
+  "yamllint==1.37.1"
 ]
 animations = [
   "imageio==2.37.4",

@@ -10,7 +10,7 @@
       speaker: "Markus Adelsberger & Georg Mayrhofer"
       image: "https://media.licdn.com/dms/image/v2/D4D03AQGeyJ7GQgLw4g/profile-displayphoto-shrink_800_800/B4DZd56zluGYAg-/0/1750097148964?e=1761782400&v=beta&t=gDx4QPjXIjbKPF6mmrklPOzS0k7jF66Df8mcblDOYW0"
 
-- id: 32  
+- id: 32
   title: "Test Event"
   date: "2024-05-15"
   host: "Test Host"
@@ -18,7 +18,7 @@
     - title: "Test Talk 1"
       speaker: "Test Speaker 1"
       image: "/images/speakers/juliano-costa.jpg"
-    - title: "Test Talk 2" 
+    - title: "Test Talk 2"
       speaker: "Test Speaker 2"
       image: "/images/speakers/jetzlstorfer.jpg"
 

@@ -24,14 +24,17 @@ AZURE_AUTH_CONFIG ?= deploy/azure-auth.json
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-dev install-animations lint format test list-events generate generate-all generate-bundle generate-promotions generate-slides generate-google-slides generate-animations run preview azure-deploy azure-auth clean
+.PHONY: help install install-dev install-animations lint lint-python lint-html lint-yaml format test list-events generate generate-all generate-bundle generate-promotions generate-slides generate-google-slides generate-animations run preview azure-deploy azure-auth clean
 
 help:
 	@echo "Available targets:"
 	@echo "  install       Install runtime dependencies"
 	@echo "  install-dev   Install project with dev dependencies"
 	@echo "  install-animations Install project with dev and animation dependencies"
-	@echo "  lint          Run Ruff linter"
+	@echo "  lint          Run Python, HTML, and YAML linters"
+	@echo "  lint-python   Run Ruff on Python sources"
+	@echo "  lint-html     Run djLint on Jinja HTML templates"
+	@echo "  lint-yaml     Run yamllint on YAML files"
 	@echo "  format        Run Black formatter"
 	@echo "  test          Run pytest"
 	@echo "  list-events   List events from EVENTS_FILE"
@@ -64,8 +67,16 @@ install-dev:
 install-animations:
 	$(PIP) install --break-system-packages -e .[dev,animations]
 
-lint:
+lint: lint-python lint-html lint-yaml
+
+lint-python:
 	ruff check src tests
+
+lint-html:
+	djlint src/imagegen/web/templates --profile=jinja --lint --ignore=H006,H021,H030,H031
+
+lint-yaml:
+	yamllint --config-data relaxed .github _data assets/templates
 
 format:
 	black src tests
