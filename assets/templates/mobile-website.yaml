@@ -2,7 +2,7 @@ name: mobile-website
 background: assets/backgrounds/mobile-website.png
 size: {width: 341, height: 200}
 defaults:
-  font: assets/fonts/DejaVuSans.ttf
+  font: assets/fonts/Inter-Regular.ttf
   color: "#FFFFFF"
   size: 12
 elements:
@@ -46,14 +46,14 @@ elements:
     type: text
     value: "{{ slots[0].speaker }}"
     box: {x: 108, y: 36, w: 137, h: 40}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     wrap: true
     fit: shrink
   - id: second_speakers
     type: text
     value: "{{ slots[1].speaker }}"
     box: {x: 101, y: 79, w: 143, h: 44}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     align: right
     wrap: true
     fit: shrink
@@ -65,7 +65,7 @@ elements:
     type: text
     value: "{{ event.date | date('%B %d, %Y') | default('Date coming soon') }}"
     box: {x: 75, y: 135, w: 191, h: 27}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 17
     fit: shrink
     align: center

@@ -4,7 +4,7 @@ size:
   width: 1920
   height: 1080
 defaults:
-  font: assets/fonts/LBRITE.TTF
+  font: assets/fonts/Inter-Regular.ttf
   color: "#FFFFFF"
   size: 40
 
@@ -13,7 +13,7 @@ elements:
     type: text
     value: "Join us on {{ event.date | date('%d %b %Y') }}"
     box: { x: 140, y: 300, w: 1640, h: 200 }
-    font: assets/fonts/LBRITED.TTF
+    font: assets/fonts/Inter-Bold.ttf
     size: 110
     color: "#FFFFFF"
     align: left

@@ -4,7 +4,7 @@ size:
   width: 1200
   height: 1200
 defaults:
-  font: assets/fonts/DejaVuSans.ttf
+  font: assets/fonts/Inter-Regular.ttf
   color: "#000000"
   size: 28
 
@@ -25,7 +25,7 @@ elements:
     type: text
     value: "{{ diamond_title | default('Talk title coming soon') }}"
     box: { x: 180, y: 803, w: 840, h: 182 }
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-Bold.ttf
     size: 55
     color: "#FFFFFF"
     align: center
@@ -38,7 +38,7 @@ elements:
     type: text
     value: "{{ diamond_speaker_names | default('Guest speaker') }}"
     box: { x: 160, y: 1015, w: 880, h: 55 }
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 40
     color: "#000000"
     align: center

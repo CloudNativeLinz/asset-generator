@@ -4,7 +4,7 @@ size:
   width: 1920
   height: 1080
 defaults:
-  font: assets/fonts/LBRITE.TTF
+  font: assets/fonts/Inter-Regular.ttf
   color: "#FFFFFF"
   size: 40
 
@@ -20,7 +20,7 @@ elements:
     type: text
     value: "Speaker Spotlight"
     box: { x: 760, y: 250, w: 1000, h: 90 }
-    font: assets/fonts/LBRITED.TTF
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 56
     color: "#FFFFFF"
     align: left
@@ -29,6 +29,7 @@ elements:
 
   - id: talk_title
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ event.talks[talk_index].title | default('Talk title coming soon') }}"
     box: { x: 760, y: 360, w: 1000, h: 280 }
     size: 76
@@ -42,7 +43,7 @@ elements:
     type: text
     value: "{{ event.talks[talk_index].speaker | default('Guest speaker') }}"
     box: { x: 760, y: 660, w: 1000, h: 110 }
-    font: assets/fonts/LBRITED.TTF
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 60
     color: "#FFFFFF"
     align: left
