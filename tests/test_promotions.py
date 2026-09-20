@@ -121,7 +121,7 @@ def test_mobile_small_type_is_not_enlarged() -> None:
 
     draw = ImageDraw.Draw(Image.new("RGB", (341, 200)))
     font, lines = fit_text(
-        draw, "Netcetera", "assets/fonts/DejaVuSans.ttf", 9, 170, 15, False, 1.15
+        draw, "Netcetera", "assets/fonts/Inter-Regular.ttf", 9, 170, 15, False, 1.15
     )
     assert font.size == 9
     assert lines == ["Netcetera"]

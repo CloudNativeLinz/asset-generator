@@ -2,7 +2,7 @@ name: teaser
 background: assets/backgrounds/teaser.png
 size: {width: 1166, height: 200}
 defaults:
-  font: assets/fonts/DejaVuSans.ttf
+  font: assets/fonts/Inter-Regular.ttf
   color: "#FFFFFF"
   size: 19
 elements:
@@ -46,11 +46,12 @@ elements:
     type: text
     value: "{{ slots[0].speaker }}"
     box: {x: 325, y: 12, w: 550, h: 34}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 27
     fit: shrink
   - id: first_title
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ slots[0].title }}"
     box: {x: 315, y: 48, w: 550, h: 44}
     wrap: true
@@ -59,12 +60,13 @@ elements:
     type: text
     value: "{{ slots[1].speaker }}"
     box: {x: 307, y: 89, w: 553, h: 33}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 27
     align: right
     fit: shrink
   - id: second_title
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ slots[1].title }}"
     box: {x: 303, y: 124, w: 542, h: 28}
     align: right
@@ -77,7 +79,7 @@ elements:
     type: text
     value: "{{ event.date | date('%B %d, %Y') | default('Date coming soon') }}"
     box: {x: 447, y: 154, w: 271, h: 37}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 24
     fit: shrink
     align: center

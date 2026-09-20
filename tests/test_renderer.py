@@ -3,10 +3,11 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from imagegen.config import Event, Template
+from imagegen.config import Event, Template, TextElement
 from imagegen.loader import find_event, load_events, load_template
+from imagegen.promotions import promotion_context
 from imagegen.renderer import render_event
-from imagegen.text import resolve_font_path
+from imagegen.text import load_font, resolve_font_path
 
 
 def test_render_polygon_image_uses_template_coordinates(tmp_path: Path) -> None:
@@ -43,6 +44,68 @@ def test_image_templates_do_not_force_uppercase() -> None:
     for template_path in Path("assets/templates").glob("*.yaml"):
         template_source = template_path.read_text(encoding="utf-8")
         assert "| upper" not in template_source, f"{template_path} forces uppercase text"
+
+
+@pytest.mark.parametrize("template_path", sorted(Path("assets/templates").glob("*.yaml")))
+def test_shipped_template_uses_bundled_inter_fonts(template_path: Path) -> None:
+    template = load_template(str(template_path))
+    allowed_fonts = {
+        f"assets/fonts/Inter-{weight}.ttf" for weight in ("Regular", "SemiBold", "Bold")
+    }
+    assert template.defaults.font == "assets/fonts/Inter-Regular.ttf"
+    for element in template.elements:
+        if isinstance(element, TextElement):
+            font_path = element.font or template.defaults.font
+            assert font_path in allowed_fonts, f"{template_path}: {element.id} uses {font_path}"
+            assert Path(font_path).is_file()
+
+
+@pytest.mark.parametrize("template_path", sorted(Path("assets/templates").glob("*.yaml")))
+@pytest.mark.parametrize("long_text", [False, True], ids=["sample", "long-german-text"])
+def test_template_text_stays_inside_boxes(
+    template_path: Path, long_text: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    event = find_event(load_events("_data/sample-events.yml"), 44)
+    if long_text:
+        event = Event(
+            id=100,
+            title="Cloud Native für alle: Plattformen, Sicherheit und Developer Experience",
+            date="2026-09-16",
+            time="17:30",
+            host="Cloud Native Community Linz",
+            address="Europaplatz 2, 4020 Linz, Österreich",
+            talks=[
+                {
+                    "title": "Zuverlässige Kubernetes-Plattformen: Von der Idee bis zum Betrieb",
+                    "speaker": "Jürgen Groß & Alexandra Müller-Schönberger",
+                }
+            ]
+            * 5,
+        )
+    monkeypatch.setattr("imagegen.text._download_emoji_asset", lambda emoji, cache_dir: None)
+    template = load_template(str(template_path))
+    context = {
+        **promotion_context(event),
+        "talk_index": 0,
+        "diamond_title": event.talks[0].title,
+        "diamond_speaker_names": event.talks[0].speaker,
+        "diamond_images": [],
+    }
+    for element in template.elements:
+        if not isinstance(element, TextElement):
+            continue
+        probe = template.model_copy(
+            update={"background": None, "background_color": "#00000000", "elements": [element]}
+        )
+        image = render_event(probe, event, output_format="png", extra_context=context)
+        bounds = image.getbbox()
+        if bounds is None:
+            continue
+        left, top, right, bottom = bounds
+        box = element.box
+        assert left >= box.x and top >= box.y, f"{template_path}: {element.id}: {bounds}"
+        assert right <= box.x + box.w, f"{template_path}: {element.id}: {bounds}"
+        assert bottom <= box.y + box.h, f"{template_path}: {element.id}: {bounds}"
 
 
 @pytest.mark.parametrize("template_path", sorted(Path("assets/templates").glob("*.yaml")))
@@ -133,10 +196,35 @@ def test_render_event_with_no_confirmed_talks(tmp_path: Path) -> None:
     assert rendered.size[1] > 0
 
 
-def test_emoji_title_uses_unicode_fallback_font() -> None:
-    font_path = resolve_font_path("assets/fonts/LBRITE.TTF", "🚀 Cloud Native Linz")
+@pytest.mark.parametrize("weight", ["Regular", "SemiBold", "Bold"])
+def test_bundled_inter_font_loads(weight: str) -> None:
+    font = load_font(f"assets/fonts/Inter-{weight}.ttf", 48)
 
-    assert font_path == "assets/fonts/LBRITE.TTF"
+    assert font.getname() == ("Inter", weight)
+    assert "SIL OPEN FONT LICENSE" in Path("assets/fonts/LICENSE.txt").read_text()
+    missing_glyph = bytes(font.getmask("\u0378"))
+    for character in "ÄÖÜäöüß":
+        assert bytes(font.getmask(character)) != missing_glyph
+
+
+def test_bundled_font_inventory_has_license_notices() -> None:
+    fonts_dir = Path("assets/fonts")
+    licenses = {
+        **{f"Inter-{weight}.ttf": "LICENSE.txt" for weight in ("Regular", "SemiBold", "Bold")},
+        "DejaVuSans.ttf": "DejaVu-LICENSE.txt",
+        "DejaVuSans-Bold.ttf": "DejaVu-LICENSE.txt",
+    }
+    assert {
+        path.name for path in fonts_dir.iterdir() if path.suffix.lower() in {".ttf", ".otf"}
+    } == set(licenses)
+    for notice in set(licenses.values()):
+        assert "Permission" in (fonts_dir / notice).read_text(encoding="utf-8")
+
+
+def test_emoji_title_preserves_selected_font() -> None:
+    font_path = resolve_font_path("assets/fonts/Inter-Bold.ttf", "🚀 Cloud Native Linz")
+
+    assert font_path == "assets/fonts/Inter-Bold.ttf"
 
 
 def test_render_save_the_date_template(monkeypatch) -> None:

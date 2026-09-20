@@ -4,7 +4,7 @@ size:
   width: 1920
   height: 1080
 defaults:
-  font: assets/fonts/LBRITE.TTF
+  font: assets/fonts/Inter-Regular.ttf
   color: "#FFFFFF"
   size: 40
 
@@ -13,7 +13,7 @@ elements:
     type: text
     value: "Agenda"
     box: { x: 140, y: 130, w: 1640, h: 120 }
-    font: assets/fonts/LBRITED.TTF
+    font: assets/fonts/Inter-Bold.ttf
     size: 96
     color: "#FFFFFF"
     align: left

@@ -2,7 +2,7 @@ name: meetup-website
 background: assets/backgrounds/meetup-website.png
 size: {width: 1080, height: 610}
 defaults:
-  font: assets/fonts/DejaVuSans.ttf
+  font: assets/fonts/Inter-Regular.ttf
   color: "#FFFFFF"
   size: 22
 elements:
@@ -46,11 +46,12 @@ elements:
     type: text
     value: "{{ slots[0].speaker }}"
     box: {x: 307, y: 240, w: 482, h: 39}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 27
     fit: shrink
   - id: first_title
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ slots[0].title }}"
     box: {x: 298, y: 281, w: 486, h: 62}
     wrap: true
@@ -59,12 +60,13 @@ elements:
     type: text
     value: "{{ slots[1].speaker }}"
     box: {x: 278, y: 345, w: 496, h: 39}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 27
     align: right
     fit: shrink
   - id: second_title
     type: text
+    font: assets/fonts/Inter-Bold.ttf
     value: "{{ slots[1].title }}"
     box: {x: 271, y: 385, w: 497, h: 60}
     align: right
@@ -78,7 +80,7 @@ elements:
     type: text
     value: "{{ event.date | date('%B %d, %Y') | default('Date coming soon') }}"
     box: {x: 353, y: 449, w: 374, h: 51}
-    font: assets/fonts/DejaVuSans-Bold.ttf
+    font: assets/fonts/Inter-SemiBold.ttf
     size: 32
     fit: shrink
     align: center

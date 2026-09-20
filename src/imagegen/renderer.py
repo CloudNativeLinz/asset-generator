@@ -121,6 +121,9 @@ def _draw_text_element(
     else:
         start_y = element.box.y
 
+    top_bearing = min((font.getbbox(line)[1] for line in lines), default=0)
+    start_y = max(start_y, element.box.y - top_bearing)
+
     for index, line in enumerate(lines):
         left, _, right, _ = draw.textbbox((0, 0), line, font=font)
         width = right - left
