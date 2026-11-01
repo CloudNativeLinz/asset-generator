@@ -11,26 +11,26 @@ requires-python = ">=3.11"
 dependencies = [
   "pillow==13.0.0",
   "PyYAML==6.0.3",
-  "pydantic==2.13.5",
+  "pydantic==2.14.1",
   "requests==2.34.2",
-  "typer==0.27.2",
+  "typer==0.27.3",
   "click==8.5.0",
-  "fastapi==0.141.1",
-  "uvicorn==0.53.0",
+  "fastapi==0.143.3",
+  "uvicorn==0.54.0",
   "jinja2==3.1.6",
-  "PyJWT[crypto]==2.15.0"
+  "PyJWT[crypto]==2.15.1"
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest==9.1.1",
-  "ruff==0.16.8",
+  "ruff==0.17.1",
   "black==26.10.1",
-  "djlint==1.46.1",
+  "djlint==1.46.6",
   "yamllint==1.38.0"
 ]
 animations = [
-  "imageio==2.37.4",
+  "imageio==2.38.1",
   "imageio-ffmpeg==0.6.0",
   "numpy==2.4.6"
 ]
