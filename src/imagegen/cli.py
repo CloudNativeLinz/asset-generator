@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 
 import typer
 import uvicorn
+import yaml
 
 from .animate import ANIMATION_PRESETS, generate_animations
 from .bundle import generate_event_bundle
@@ -19,6 +21,7 @@ from .promotions import PROMOTION_FORMATS, PROMOTION_VARIANTS, generate_promotio
 from .renderer import render_event
 from .slides import generate_slide_deck
 from .web.app import create_app
+from .website import generate_website_images
 
 app = typer.Typer(help="Template-driven event image generator")
 ANIMATION_PRESETS_TEXT = ", ".join(ANIMATION_PRESETS)
@@ -188,6 +191,44 @@ def generate_promotions_command(
         output_format=format.lower(),
     ):
         typer.echo(f"Rendered {result.path} ({result.width} x {result.height})")
+
+
+@app.command("website-images")
+def website_images(
+    events_file: str = typer.Option(..., "--events-file", help="Current website events YAML"),
+    out_dir: str = typer.Option(..., "--out-dir", help="Website images/events directory"),
+    base_events_file: str | None = typer.Option(
+        None, "--base-events-file", help="Previous events YAML; omitted or empty means all changed"
+    ),
+    site_root: str | None = typer.Option(
+        None, "--site-root", help="Local website checkout for /images/... paths"
+    ),
+    today: str | None = typer.Option(None, "--today", help="Override today's date (YYYY-MM-DD)"),
+    event_ids: Annotated[
+        list[int] | None,
+        typer.Option("--event-id", help="Bypass change detection for this event ID; repeatable"),
+    ] = None,
+) -> None:
+    try:
+        cutoff = date.fromisoformat(today) if today is not None else None
+    except ValueError as exc:
+        raise typer.BadParameter("--today must be YYYY-MM-DD") from exc
+    try:
+        result = generate_website_images(
+            events_file,
+            out_dir,
+            base_events_file=base_events_file,
+            site_root=site_root,
+            today=cutoff,
+            event_ids=event_ids,
+        )
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    generated = ", ".join(map(str, result.generated)) or "none"
+    skipped = ", ".join(f"{event_id} ({reason})" for event_id, reason in result.skipped.items())
+    typer.echo(f"Generated {len(result.generated)} event(s): {generated}")
+    typer.echo(f"Skipped {len(result.skipped)} event(s): {skipped or 'none'}")
 
 
 @app.command("generate-slides")

@@ -137,6 +137,64 @@ and register its label/dimensions in `src/imagegen/promotions.py` (`PROMOTION_PR
 Image elements with `shape: polygon` accept `polygon_points` as pixel coordinates relative to
 their own box, so clipped and slanted frames do not require a new renderer shape per format.
 
+## Website Image Automation
+
+The website repository can run `website-images` on every push to generate only changed upcoming
+events. Run from an asset-generator checkout (templates, backgrounds, and fonts are resolved there).
+CI needs Python 3.11+ and only the runtime installation, not development or animation dependencies:
+
+```bash
+python -m pip install -e .
+make website-images \
+    EVENTS_FILE="../website/_data/events.yml" \
+    BASE_EVENTS_FILE="../previous-events.yml" \
+    OUT_DIR="../website/images/events" \
+    SITE_ROOT="../website"
+```
+
+The equivalent CLI is:
+
+```bash
+imagegen website-images \
+    --events-file "../website/_data/events.yml" \
+    --base-events-file "../previous-events.yml" \
+    --out-dir "../website/images/events" \
+    --site-root "../website"
+```
+
+`--events-file` and `--out-dir` are required. `--base-events-file`, `--site-root`, `--today YYYY-MM-DD`,
+and repeatable `--event-id ID` are optional. The Make equivalents are `EVENTS_FILE`, `OUT_DIR`,
+`BASE_EVENTS_FILE`, `SITE_ROOT`, `TODAY`, and space-separated `EVENT_ID` values
+(for example `EVENT_ID="49 50"`).
+
+Compare the current events YAML with the previous commit's YAML, supplied by the website workflow.
+Normalized event dictionaries are compared by ID, including website-only metadata; reordered YAML
+keys or events do not trigger regeneration. New events count as changed. Omitting the base file or
+providing an empty base file treats all events as changed. Empty current files produce no images;
+missing or malformed input files fail rather than silently fetching remote event data.
+
+Only events dated today or later, or without a date, are generated. `--today` provides a deterministic
+override for this cutoff. `--event-id` bypasses change detection but still respects the date cutoff
+and opt-out. Disable automation for a manually designed event image in the website's events YAML:
+
+```yaml
+- id: 49
+  date: 2026-11-12
+  generate_images: false
+```
+
+Each selected event produces `<id>.jpg` (`meetup-website`, 1080 x 610) and `<id>-teaser.jpg`
+(`teaser`, 1166 x 200) directly in the output directory, always with the `auto` variant and JPEG
+format. Existing files for skipped or removed events are left untouched. A concise generated/skipped
+summary is printed, and no work is a successful exit (0).
+
+`--site-root` resolves `/images/...` portraits and sponsor logos against the local website checkout,
+including `talk.images` for co-presenters and legacy `/assets/speaker-images/...` portraits.
+Missing local portraits fall back to the existing website speaker-image URLs; external URLs retain
+their existing behavior. Local image resolution happens after change detection, so checkout location
+and image bytes alone do not trigger regeneration. The website workflow owns committing the generated
+JPEG files; this command does not publish or push them.
+
 ## Slides And Animations
 
 Generate only the PDF slide deck and its PNG pages:

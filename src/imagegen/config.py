@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date as EventDate
 from os import getenv
 from typing import Annotated, Any, Literal
 
@@ -23,8 +23,9 @@ class Sponsor(BaseModel):
 
 class Event(BaseModel):
     id: int
+    generate_images: bool = True
     title: str = ""
-    date: str | date | None = None
+    date: str | EventDate | None = None
     time: str = Field(default="", validation_alias=AliasChoices("time", "doors_open"))
     venue: str = ""
     address: str = ""
