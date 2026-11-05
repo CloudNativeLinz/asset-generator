@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -35,8 +36,35 @@ def _fetch_remote_events() -> list[dict[str, Any]]:
     return parsed
 
 
-def _resolve_speaker_image_urls(raw_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _resolve_website_image(source: Any, site_root: str | None) -> Any:
+    image = str(source or "").strip()
+    relative = image.removeprefix("/")
+    if image.startswith("/assets/speaker-images/"):
+        relative = "images/speakers/" + image.removeprefix("/assets/speaker-images/")
+
+    if site_root and image.startswith(("/images/", "/assets/speaker-images/")):
+        root = Path(site_root).resolve()
+        candidate = (root / relative).resolve()
+        if not candidate.is_relative_to(root):
+            raise ValueError(f"Website image path escapes --site-root: {image}")
+        if candidate.is_file():
+            return str(candidate)
+
+    if image.startswith(("/images/speakers/", "/assets/speaker-images/")):
+        return f"{SPEAKER_IMAGES_URL}/{relative.removeprefix('images/speakers/')}"
+    return source
+
+
+def resolve_event_images(
+    raw_events: list[dict[str, Any]], site_root: str | None = None
+) -> list[dict[str, Any]]:
+    raw_events = deepcopy(raw_events)
     for event in raw_events:
+        if event.get("sponsor_logo"):
+            event["sponsor_logo"] = _resolve_website_image(event["sponsor_logo"], site_root)
+        for sponsor in event.get("sponsors") or []:
+            if isinstance(sponsor, dict) and sponsor.get("logo"):
+                sponsor["logo"] = _resolve_website_image(sponsor["logo"], site_root)
         talks = event.get("talks")
         if not isinstance(talks, list):
             continue
@@ -45,11 +73,12 @@ def _resolve_speaker_image_urls(raw_events: list[dict[str, Any]]) -> list[dict[s
             if not isinstance(talk, dict):
                 continue
 
-            image = str(talk.get("image") or "").strip()
-            for prefix in ("/assets/speaker-images/", "/images/speakers/"):
-                if image.startswith(prefix):
-                    talk["image"] = f"{SPEAKER_IMAGES_URL}/{image.removeprefix(prefix)}"
-                    break
+            if talk.get("image"):
+                talk["image"] = _resolve_website_image(talk["image"], site_root)
+            if isinstance(talk.get("images"), list):
+                talk["images"] = [
+                    _resolve_website_image(image, site_root) for image in talk["images"]
+                ]
 
     return raw_events
 
@@ -72,20 +101,38 @@ def _normalize_null_fields(raw_events: list[dict[str, Any]]) -> list[dict[str, A
     return normalized
 
 
-def load_events(events_file: str = "_data/events.yml") -> list[Event]:
+def load_event_data(
+    events_file: str = "_data/events.yml", *, allow_remote: bool = True
+) -> list[dict[str, Any]]:
     path = Path(events_file)
     raw: list[dict[str, Any]]
 
-    if path.exists():
-        loaded = _safe_yaml_load(path)
+    if not allow_remote or path.exists():
+        if allow_remote:
+            loaded = _safe_yaml_load(path)
+        else:
+            with path.open("r", encoding="utf-8") as handle:
+                loaded = yaml.safe_load(handle)
+            if loaded is None:
+                loaded = []
+        if not allow_remote and not isinstance(loaded, list):
+            raise ValueError(f"Events file must contain a YAML list: {path}")
+        if not allow_remote and any(not isinstance(item, dict) for item in loaded):
+            raise ValueError(f"Events file must contain event mappings: {path}")
         raw = loaded if isinstance(loaded, list) else []
     else:
         raw = []
 
-    if not raw:
+    if not raw and allow_remote:
         raw = _fetch_remote_events()
 
-    normalized = _normalize_null_fields(_resolve_speaker_image_urls(raw))
+    return _normalize_null_fields(raw)
+
+
+def load_events(
+    events_file: str = "_data/events.yml", *, site_root: str | None = None
+) -> list[Event]:
+    normalized = resolve_event_images(load_event_data(events_file), site_root)
     events = [Event.model_validate(item) for item in normalized]
     return sorted(events, key=lambda event: event.id, reverse=True)
 

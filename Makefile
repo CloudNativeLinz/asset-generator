@@ -3,6 +3,9 @@ PIP ?= $(PYTHON) -m pip
 TEMPLATE ?= assets/templates/save-the-date.yaml
 EVENTS_FILE ?= _data/events.yml
 OUT_DIR ?= artifacts
+BASE_EVENTS_FILE ?=
+SITE_ROOT ?=
+TODAY ?=
 EVENT_ID ?=
 WIDTH ?=
 FORMAT ?= jpg
@@ -24,7 +27,7 @@ AZURE_AUTH_CONFIG ?= deploy/azure-auth.json
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-dev install-animations lint lint-python lint-html lint-yaml format test list-events generate generate-all generate-bundle generate-promotions generate-slides generate-google-slides generate-animations run preview azure-deploy azure-auth clean
+.PHONY: help install install-dev install-animations lint lint-python lint-html lint-yaml format test list-events generate generate-all generate-bundle generate-promotions website-images generate-slides generate-google-slides generate-animations run preview azure-deploy azure-auth clean
 
 help:
 	@echo "Available targets:"
@@ -42,6 +45,7 @@ help:
 	@echo "  generate-all  Generate images for all events"
 	@echo "  generate-bundle     Generate images, social copy, and slides (requires EVENT_ID)"
 	@echo "  generate-promotions Generate native-size landscape graphics (requires EVENT_ID)"
+	@echo "  website-images Generate changed upcoming website event images"
 	@echo "  generate-slides     Generate a slide deck PDF (requires EVENT_ID)"
 	@echo "  generate-google-slides Copy and populate a Google Slides template (requires EVENT_ID)"
 	@echo "  generate-animations Generate animated clips (requires EVENT_ID)"
@@ -110,6 +114,9 @@ generate-promotions:
 		exit 1; \
 	fi
 	imagegen generate-promotions --file $(EVENTS_FILE) --out $(OUT_DIR) --id $(EVENT_ID) --canvas $(CANVAS) --variant $(PROMOTION_VARIANT) $(if $(WIDTH),--width $(WIDTH),) --format $(FORMAT)
+
+website-images:
+	imagegen website-images --events-file "$(EVENTS_FILE)" --out-dir "$(OUT_DIR)" $(if $(BASE_EVENTS_FILE),--base-events-file "$(BASE_EVENTS_FILE)",) $(if $(SITE_ROOT),--site-root "$(SITE_ROOT)",) $(if $(TODAY),--today "$(TODAY)",) $(foreach id,$(EVENT_ID),--event-id $(id))
 
 generate-slides:
 	@if [ -z "$(EVENT_ID)" ]; then \
